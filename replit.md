@@ -4,13 +4,17 @@
 
 This is a full-stack web application (CEBRIC) for analyzing Formula 1 telemetry data. The platform enables users to visualize lap times, compare driver performance, and examine detailed telemetry metrics (speed, throttle, brake) across different racing sessions. It integrates with FastF1 Python library to fetch real-time F1 data and presents it through an interactive dashboard built with React and Chart.js.
 
-## Recent Changes (October 2025)
+## Recent Changes (December 2025)
 
-- Added tire degradation and energy management analysis types to Advanced Analysis lap section
-- Enhanced brake analysis with detailed zone-by-zone breakdown (removed chart visualization, fixed data property mappings)
-- Added comprehensive deployment and networking instructions to README
-- Updated social media links: Telegram (https://t.me/CEBRICF1), Instagram (https://www.instagram.com/cebricf1/)
+- Added 4 new analysis types to Advanced Analysis: Weather Impact, Pit Stop Strategy, DRS Zone Analysis, Race Strategy
+- Created new "Race Insights" component with driver rankings, performance predictions, and session-level insights
+- Implemented Python backend functions for all new analysis types using FastF1 library
+- Added corresponding API endpoints in Express server for new analyses
+- Session-only analyses (weather, pit stops, strategy) work without requiring driver/lap selection
 - Extended race averages with additional metrics: Fastest Lap, Top Speed, Average Speed, Session Duration
+- Added tire degradation and energy management analysis types to Advanced Analysis lap section
+- Enhanced brake analysis with detailed zone-by-zone breakdown
+- Updated social media links: Telegram (https://t.me/CEBRICF1), Instagram (https://www.instagram.com/cebricf1/)
 
 ## User Preferences
 
