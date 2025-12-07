@@ -53,7 +53,7 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
   });
 
   const handleLoadAnalysis = () => {
-    const sessionOnlyTypes = ['weather', 'pitstop', 'strategy'];
+    const sessionOnlyTypes: string[] = [];
     const needsDriverAndLap = !sessionOnlyTypes.includes(analysisType);
 
     if (!filters.year || !filters.gp || !filters.session) {
@@ -348,10 +348,7 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
                     <SelectItem value="brake">Brake Analysis</SelectItem>
                     <SelectItem value="tire">Tire Degradation</SelectItem>
                     <SelectItem value="energy">Energy Management</SelectItem>
-                    <SelectItem value="weather">Weather Impact</SelectItem>
-                    <SelectItem value="pitstop">Pit Stop Strategy</SelectItem>
                     <SelectItem value="drs">DRS Zone Analysis</SelectItem>
-                    <SelectItem value="strategy">Race Strategy</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

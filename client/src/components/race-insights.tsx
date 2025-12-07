@@ -276,29 +276,37 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
 
             {/* Driver Performance Radar (for top 3) */}
             {radarData.length >= 3 && (
-              <Card>
+              <Card className="bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
                 <CardHeader>
-                  <CardTitle className="text-lg">Top 3 Performance Radar</CardTitle>
-                  <CardDescription>Multi-dimensional comparison of leading drivers (normalized scores)</CardDescription>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <i className="fas fa-chart-radar text-primary"></i>
+                    Top 3 Performance Radar
+                  </CardTitle>
+                  <CardDescription>Multi-dimensional comparison of leading drivers across key performance metrics (all scores normalized to 0-100 scale)</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={400}>
+                  <ResponsiveContainer width="100%" height={450}>
                     <RadarChart data={[
                       { metric: 'Performance Score', [radarData[0]?.driver]: radarData[0]?.['Performance Score'], [radarData[1]?.driver]: radarData[1]?.['Performance Score'], [radarData[2]?.driver]: radarData[2]?.['Performance Score'] },
                       { metric: 'Consistency', [radarData[0]?.driver]: radarData[0]?.['Consistency'], [radarData[1]?.driver]: radarData[1]?.['Consistency'], [radarData[2]?.driver]: radarData[2]?.['Consistency'] },
                       { metric: 'Best Pace', [radarData[0]?.driver]: radarData[0]?.['Best Pace'], [radarData[1]?.driver]: radarData[1]?.['Best Pace'], [radarData[2]?.driver]: radarData[2]?.['Best Pace'] },
                       { metric: 'Avg Pace', [radarData[0]?.driver]: radarData[0]?.['Avg Pace'], [radarData[1]?.driver]: radarData[1]?.['Avg Pace'], [radarData[2]?.driver]: radarData[2]?.['Avg Pace'] },
                     ]}>
-                      <PolarGrid gridType="polygon" stroke="rgba(255,255,255,0.2)" />
+                      <PolarGrid 
+                        gridType="polygon" 
+                        stroke="rgba(0, 217, 255, 0.3)"
+                        strokeWidth={1.5}
+                      />
                       <PolarAngleAxis 
                         dataKey="metric" 
-                        tick={{ fill: '#888', fontSize: 12 }}
+                        tick={{ fill: '#fff', fontSize: 13, fontWeight: 500 }}
                       />
                       <PolarRadiusAxis 
                         angle={30} 
                         domain={[0, 100]} 
-                        tick={{ fill: '#888' }}
+                        tick={{ fill: '#888', fontSize: 11 }}
                         tickCount={6}
+                        stroke="rgba(255,255,255,0.2)"
                       />
                       {radarData.slice(0, 3).map((entry: any, idx: number) => (
                         <Radar
@@ -307,19 +315,45 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
                           dataKey={entry.driver}
                           stroke={performanceColors[idx]}
                           fill={performanceColors[idx]}
-                          fillOpacity={0.25}
-                          strokeWidth={2}
+                          fillOpacity={0.3}
+                          strokeWidth={3}
+                          dot={{ r: 5, fill: performanceColors[idx], strokeWidth: 2, stroke: '#fff' }}
                         />
                       ))}
                       <Legend 
                         wrapperStyle={{ paddingTop: '20px' }}
+                        iconType="circle"
                       />
                       <Tooltip 
-                        formatter={(value: number) => value.toFixed(1)}
-                        contentStyle={{ backgroundColor: 'rgba(18, 18, 20, 0.95)', border: '1px solid #00d9ff' }}
+                        formatter={(value: number) => [`${value.toFixed(1)}`, 'Score']}
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(18, 18, 20, 0.98)', 
+                          border: '2px solid #00d9ff',
+                          borderRadius: '8px',
+                          padding: '12px'
+                        }}
+                        labelStyle={{ color: '#00d9ff', fontWeight: 'bold', marginBottom: '8px' }}
                       />
                     </RadarChart>
                   </ResponsiveContainer>
+                  
+                  <div className="mt-6 grid grid-cols-3 gap-4">
+                    {radarData.slice(0, 3).map((driver: any, idx: number) => (
+                      <div key={driver.driver} className="p-4 bg-muted/30 rounded-lg border border-border text-center">
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: performanceColors[idx] }}
+                          ></div>
+                          <span className="font-bold">{driver.driver}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          <p>Overall: <span className="text-primary font-semibold">{driver['Performance Score'].toFixed(1)}</span></p>
+                          <p>Consistency: <span className="text-green-400 font-semibold">{driver['Consistency'].toFixed(1)}</span></p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             )}

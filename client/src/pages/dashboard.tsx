@@ -21,7 +21,7 @@ export default function Dashboard() {
   const timeFormat = 'seconds';
 
   // Placeholder for year options, to be updated with 2018, 2019, 2025
-  const availableYears = ["2023", "2022", "2021", "2020", "2019", "2018", "2025"]; 
+  const availableYears = ["2023", "2022", "2021", "2020", "2019", "2018", "2025"];
 
   return (
     <div className="min-h-screen bg-background" data-testid="dashboard-main">
@@ -33,7 +33,7 @@ export default function Dashboard() {
               <h1 className="text-2xl font-bold text-foreground">CEBRIC</h1>
             </div>
             <div className="flex items-center">
-              <span className="text-sm text-muted-foreground">Real-time F1 Data Analysis</span>
+              <span className="text-sm text-muted-foreground">F1 Data Analysis</span>
             </div>
           </div>
         </div>
@@ -42,7 +42,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filter Section */}
-        <FilterPanel 
+        <FilterPanel
           onDataLoaded={setSessionData}
           onFiltersChange={setSelectedFilters}
           filters={selectedFilters}
@@ -50,7 +50,7 @@ export default function Dashboard() {
         />
 
         {/* Lap Chart Section */}
-        <LapChart 
+        <LapChart
           sessionData={sessionData}
           timeFormat={timeFormat} // Pass time format
           onLapSelect={(driver, lap) => {
@@ -63,7 +63,7 @@ export default function Dashboard() {
         <StatisticsCards sessionData={sessionData} timeFormat={timeFormat} />
 
         {/* Telemetry Section */}
-        <TelemetrySection 
+        <TelemetrySection
           telemetryData={telemetryData}
           sessionData={sessionData}
           filters={selectedFilters}
@@ -80,7 +80,7 @@ export default function Dashboard() {
         <AdditionalAnalysis sessionData={sessionData} timeFormat={timeFormat} />
 
         {/* Advanced Analysis Section */}
-        <AdvancedAnalysis sessionData={sessionData} filters={selectedFilters} />
+        <AdvancedAnalysis sessionData={sessionData} filters={selectedFilters} excludeMetrics={["weather_impact", "pit_stop"]} />
 
         {/* Race Insights Section */}
         <RaceInsights sessionData={sessionData} filters={selectedFilters} />
@@ -99,9 +99,9 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex items-center gap-5">
-              <a 
-                href="https://t.me/CEBRICF1" 
-                target="_blank" 
+              <a
+                href="https://t.me/CEBRICF1"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="group flex items-center justify-center w-10 h-10 rounded-lg bg-muted/50 hover:bg-[#0088cc] transition-all duration-300 hover:scale-110"
                 aria-label="Join us on Telegram"
@@ -110,9 +110,9 @@ export default function Dashboard() {
               >
                 <i className="fab fa-telegram text-xl text-white transition-colors"></i>
               </a>
-              <a 
-                href="https://instagram.com/an.zomorodian" 
-                target="_blank" 
+              <a
+                href="https://instagram.com/an.zomorodian"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="group flex items-center justify-center w-10 h-10 rounded-lg bg-muted/50 hover:bg-gradient-to-br hover:from-[#833AB4] hover:via-[#E1306C] hover:to-[#F77737] transition-all duration-300 hover:scale-110"
                 aria-label="Follow us on Instagram"
@@ -121,9 +121,9 @@ export default function Dashboard() {
               >
                 <i className="fab fa-instagram text-xl text-muted-foreground group-hover:text-white transition-colors"></i>
               </a>
-              <a 
-                href="https://discord.gg/7ft5D8N5" 
-                target="_blank" 
+              <a
+                href="https://discord.gg/7ft5D8N5"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="group flex items-center justify-center w-10 h-10 rounded-lg bg-muted/50 hover:bg-[#5865F2] transition-all duration-300 hover:scale-110"
                 aria-label="Join our Discord"

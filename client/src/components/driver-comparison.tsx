@@ -56,15 +56,15 @@ export default function DriverComparison({ sessionData }: DriverComparisonProps)
   const hasComparison = driver1 && driver2 && driver1BestLap && driver2BestLap;
 
   return (
-    <Card className="mb-8 overflow-hidden" data-testid="driver-comparison-section">
-      <div className="p-6 border-b border-border bg-muted/30">
+    <Card className="mb-8 overflow-hidden border-2 border-primary/20" data-testid="driver-comparison-section">
+      <div className="p-6 border-b border-border bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-foreground flex items-center">
-              <i className="fas fa-users text-primary mr-2"></i>
+            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <i className="fas fa-users text-primary"></i>
               DRIVER COMPARISON
             </h2>
-            <p className="text-sm text-muted-foreground mt-1">Compare lap times and sectors between two drivers</p>
+            <p className="text-sm text-muted-foreground mt-2">Head-to-head analysis of lap times, sector performance, and race pace</p>
           </div>
         </div>
       </div>
@@ -118,38 +118,55 @@ export default function DriverComparison({ sessionData }: DriverComparisonProps)
           <div className="space-y-6">
             {/* Lap Time Comparison */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="bg-muted/30">
-                <CardContent className="p-4">
+              <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/40">
+                <CardContent className="p-5">
                   <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-2">{driver1}</p>
-                    <p className="text-3xl font-bold text-primary font-mono" data-testid="driver1-best-lap">
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <div className="w-3 h-3 rounded-full bg-primary"></div>
+                      <p className="text-sm font-semibold text-foreground">{driver1}</p>
+                    </div>
+                    <p className="text-4xl font-bold text-primary font-mono mb-2" data-testid="driver1-best-lap">
                       {formatTime(driver1BestLap.lapTime)}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">Lap {driver1BestLap.lapNumber}</p>
+                    <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-primary/20 rounded-full">
+                      <i className="fas fa-flag text-xs text-primary"></i>
+                      <p className="text-xs text-primary font-medium">Lap {driver1BestLap.lapNumber}</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-muted/30">
-                <CardContent className="p-4">
+              <Card className="bg-gradient-to-br from-accent/20 to-accent/5 border-accent/40">
+                <CardContent className="p-5">
                   <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-2">Delta</p>
-                    <p className={`text-3xl font-bold font-mono ${getDeltaColor(driver1BestLap.lapTime - driver2BestLap.lapTime)}`} data-testid="lap-delta">
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <i className="fas fa-exchange-alt text-accent"></i>
+                      <p className="text-sm font-semibold text-foreground">Time Delta</p>
+                    </div>
+                    <p className={`text-4xl font-bold font-mono mb-2 ${getDeltaColor(driver1BestLap.lapTime - driver2BestLap.lapTime)}`} data-testid="lap-delta">
                       {calculateDelta(driver1BestLap.lapTime, driver2BestLap.lapTime)}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">Difference</p>
+                    <p className="text-xs text-muted-foreground">
+                      {driver1BestLap.lapTime < driver2BestLap.lapTime ? `${driver1} faster` : `${driver2} faster`}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-muted/30">
-                <CardContent className="p-4">
+              <Card className="bg-gradient-to-br from-secondary/20 to-secondary/5 border-secondary/40">
+                <CardContent className="p-5">
                   <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-2">{driver2}</p>
-                    <p className="text-3xl font-bold text-secondary font-mono" data-testid="driver2-best-lap">
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <div className="w-3 h-3 rounded-full bg-secondary"></div>
+                      <p className="text-sm font-semibold text-foreground">{driver2}</p>
+                    </div>
+                    <p className="text-4xl font-bold text-secondary font-mono mb-2" data-testid="driver2-best-lap">
                       {formatTime(driver2BestLap.lapTime)}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">Lap {driver2BestLap.lapNumber}</p>
+                    <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-secondary/20 rounded-full">
+                      <i className="fas fa-flag text-xs text-secondary"></i>
+                      <p className="text-xs text-secondary font-medium">Lap {driver2BestLap.lapNumber}</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -157,10 +174,13 @@ export default function DriverComparison({ sessionData }: DriverComparisonProps)
 
             {/* Sector Comparison */}
             <div>
-              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
-                <i className="fas fa-layer-group text-primary mr-2"></i>
-                Sector Breakdown
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
+                  <i className="fas fa-layer-group text-primary"></i>
+                  Sector Breakdown
+                </h3>
+                <p className="text-xs text-muted-foreground">Detailed sector-by-sector comparison</p>
+              </div>
               
               <div className="space-y-3">
                 {/* Sector 1 */}
