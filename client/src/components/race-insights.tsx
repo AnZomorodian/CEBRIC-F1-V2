@@ -86,7 +86,7 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
           </Button>
         </CardTitle>
         <CardDescription>
-          AI-powered performance analysis, predictions, and driver comparisons
+          This section analyzes session performance data to show driver rankings based on their average lap times (not personal best laps), consistency metrics (variance from mean), and calculated performance scores. The "Best Lap" shown is each driver's fastest lap in the session, while rankings are based on nearest-to-average consistent pace.
         </CardDescription>
       </CardHeader>
       <CardContent>

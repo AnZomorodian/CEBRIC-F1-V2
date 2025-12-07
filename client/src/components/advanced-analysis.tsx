@@ -19,7 +19,8 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
   const [selectedLap, setSelectedLap] = useState<string>("");
   const [analysisType, setAnalysisType] = useState<'downforce' | 'corners' | 'brake' | 'tire' | 'energy' | 'weather' | 'pitstop' | 'drs' | 'strategy'>('downforce');
   const [analysisData, setAnalysisData] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<'race' | 'lap'>('race');
+  const [viewMode, setViewMode] = useState<'race' | 'lap' | 'weather'>('race');
+  const [weatherData, setWeatherData] = useState<any>(null);
   const { toast } = useToast();
 
   const loadAnalysisMutation = useMutation({
@@ -84,6 +85,47 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
     });
   };
 
+  const loadWeatherMutation = useMutation({
+    mutationFn: async (params: { year: number; gp: string; session: string }) => {
+      const response = await apiRequest("POST", "/api/f1/weather-analysis", { 
+        ...params, 
+        driver: "", 
+        lap: 0 
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setWeatherData(data);
+      toast({
+        title: "Weather Data Loaded",
+        description: "Session weather conditions loaded successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error Loading Weather",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleLoadWeather = () => {
+    if (!filters.year || !filters.gp || !filters.session) {
+      toast({
+        title: "Missing Parameters",
+        description: "Please load session data first",
+        variant: "destructive",
+      });
+      return;
+    }
+    loadWeatherMutation.mutate({
+      year: parseInt(filters.year),
+      gp: filters.gp,
+      session: filters.session,
+    });
+  };
+
   const availableDrivers = sessionData?.drivers || [];
   const maxLap = sessionData?.statistics.totalLaps || 50;
   const lapOptions = Array.from({ length: maxLap }, (_, i) => i + 1);
@@ -120,10 +162,19 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
             >
               Lap Analysis
             </Button>
+            <Button
+              variant={viewMode === 'weather' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('weather')}
+            >
+              Race Weather
+            </Button>
           </div>
         </CardTitle>
         <CardDescription>
-          {viewMode === 'race' ? 'Overall race statistics and averages' : 'Detailed lap-by-lap analysis'}
+          {viewMode === 'race' ? 'Overall race statistics and averages' : 
+           viewMode === 'lap' ? 'Detailed lap-by-lap analysis' :
+           'Weather conditions throughout the session'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -282,7 +333,7 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
               </Card>
             )}
           </div>
-        ) : (
+        ) : viewMode === 'lap' ? (
           // Lap-by-Lap Analysis Section
           <div>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
@@ -1457,6 +1508,189 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
                       </CardContent>
                     </Card>
                   </div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          // Race Weather Section
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <p className="text-muted-foreground">View weather conditions throughout the entire session including temperature, humidity, wind, and track conditions.</p>
+              <Button 
+                onClick={handleLoadWeather} 
+                disabled={loadWeatherMutation.isPending || !sessionData}
+              >
+                {loadWeatherMutation.isPending ? (
+                  <i className="fas fa-spinner fa-spin mr-2"></i>
+                ) : (
+                  <i className="fas fa-cloud-sun mr-2"></i>
+                )}
+                Load Weather Data
+              </Button>
+            </div>
+
+            {!weatherData ? (
+              <div className="text-center py-12">
+                <i className="fas fa-cloud-sun text-6xl text-muted mb-4 block"></i>
+                <p className="text-muted-foreground mb-2">Click "Load Weather Data" to view session weather conditions</p>
+                <p className="text-xs text-muted-foreground">Includes temperature, humidity, wind speed, and track conditions</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Current Conditions Summary */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <i className="fas fa-thermometer-half text-red-400"></i>
+                        Air Temperature
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-primary">
+                        {weatherData.avgAirTemp?.toFixed(1) || weatherData.currentConditions?.airTemp?.toFixed(1) || 'N/A'}C
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">Session average</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <i className="fas fa-road text-orange-400"></i>
+                        Track Temperature
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-secondary">
+                        {weatherData.avgTrackTemp?.toFixed(1) || weatherData.currentConditions?.trackTemp?.toFixed(1) || 'N/A'}C
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">Session average</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <i className="fas fa-tint text-blue-400"></i>
+                        Humidity
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-accent">
+                        {weatherData.avgHumidity?.toFixed(0) || weatherData.currentConditions?.humidity?.toFixed(0) || 'N/A'}%
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">Session average</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <i className="fas fa-wind text-cyan-400"></i>
+                        Wind Speed
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {weatherData.avgWindSpeed?.toFixed(1) || weatherData.currentConditions?.windSpeed?.toFixed(1) || 'N/A'} m/s
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">Session average</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Track Status */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <i className="fas fa-flag-checkered"></i>
+                      Track Conditions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="p-4 bg-muted/30 rounded-lg border border-border text-center">
+                        <i className={`fas fa-${weatherData.rainfall || weatherData.currentConditions?.rainfall ? 'cloud-rain text-blue-400' : 'sun text-yellow-400'} text-3xl mb-2`}></i>
+                        <p className="font-semibold">{weatherData.rainfall || weatherData.currentConditions?.rainfall ? 'Wet' : 'Dry'}</p>
+                        <p className="text-xs text-muted-foreground">Track Surface</p>
+                      </div>
+                      <div className="p-4 bg-muted/30 rounded-lg border border-border text-center">
+                        <i className="fas fa-compass text-green-400 text-3xl mb-2"></i>
+                        <p className="font-semibold">{weatherData.avgWindDirection?.toFixed(0) || weatherData.currentConditions?.windDirection?.toFixed(0) || 'N/A'}</p>
+                        <p className="text-xs text-muted-foreground">Wind Direction</p>
+                      </div>
+                      <div className="p-4 bg-muted/30 rounded-lg border border-border text-center">
+                        <i className="fas fa-gauge-high text-purple-400 text-3xl mb-2"></i>
+                        <p className="font-semibold">{weatherData.avgPressure?.toFixed(0) || weatherData.currentConditions?.pressure?.toFixed(0) || 'N/A'} mbar</p>
+                        <p className="text-xs text-muted-foreground">Air Pressure</p>
+                      </div>
+                      <div className="p-4 bg-muted/30 rounded-lg border border-border text-center">
+                        <i className={`fas fa-${weatherData.trackStatus === 'Green' ? 'check-circle text-green-400' : weatherData.trackStatus === 'Yellow' ? 'exclamation-triangle text-yellow-400' : 'flag text-red-400'} text-3xl mb-2`}></i>
+                        <p className="font-semibold">{weatherData.trackStatus || 'Normal'}</p>
+                        <p className="text-xs text-muted-foreground">Track Status</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Weather Timeline */}
+                {weatherData.weatherTimeline && weatherData.weatherTimeline.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <i className="fas fa-chart-line"></i>
+                        Weather Throughout Session
+                      </CardTitle>
+                      <CardDescription>How conditions changed during the session</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={weatherData.weatherTimeline}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="time" />
+                          <YAxis yAxisId="temp" orientation="left" domain={['auto', 'auto']} />
+                          <YAxis yAxisId="humidity" orientation="right" domain={[0, 100]} />
+                          <Tooltip />
+                          <Legend />
+                          <Line yAxisId="temp" type="monotone" dataKey="airTemp" stroke="#00d9ff" name="Air Temp (C)" dot={false} />
+                          <Line yAxisId="temp" type="monotone" dataKey="trackTemp" stroke="#ff3853" name="Track Temp (C)" dot={false} />
+                          <Line yAxisId="humidity" type="monotone" dataKey="humidity" stroke="#22c55e" name="Humidity (%)" dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Weather Impact on Lap Times */}
+                {weatherData.weatherImpact && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <i className="fas fa-bolt text-yellow-400"></i>
+                        Weather Impact Analysis
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {weatherData.weatherImpact.map((impact: any, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border">
+                            <div className="flex items-center gap-3">
+                              <i className={`fas fa-${impact.type === 'temperature' ? 'thermometer-half text-red-400' : impact.type === 'humidity' ? 'tint text-blue-400' : 'wind text-cyan-400'}`}></i>
+                              <span className="font-semibold">{impact.factor}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className={`font-mono ${impact.effect > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                {impact.effect > 0 ? '+' : ''}{impact.effect.toFixed(3)}s
+                              </span>
+                              <p className="text-xs text-muted-foreground">per lap impact</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
               </div>
             )}
