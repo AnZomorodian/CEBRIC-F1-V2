@@ -230,6 +230,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get weather analysis
+  app.post("/api/f1/weather-analysis", async (req, res) => {
+    try {
+      const { year, gp, session } = req.body;
+      const pythonPath = path.resolve(__dirname, '../python/f1_data_fetcher.py');
+      
+      const result = execSync(
+        `python3 ${pythonPath} weather-analysis ${year} "${gp}" ${session}`,
+        { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 }
+      );
+      
+      res.json(JSON.parse(result));
+    } catch (error) {
+      console.error("Error fetching weather analysis:", error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to fetch weather analysis" });
+    }
+  });
+
+  // Get pit stop analysis
+  app.post("/api/f1/pitstop-analysis", async (req, res) => {
+    try {
+      const { year, gp, session } = req.body;
+      const pythonPath = path.resolve(__dirname, '../python/f1_data_fetcher.py');
+      
+      const result = execSync(
+        `python3 ${pythonPath} pitstop-analysis ${year} "${gp}" ${session}`,
+        { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 }
+      );
+      
+      res.json(JSON.parse(result));
+    } catch (error) {
+      console.error("Error fetching pitstop analysis:", error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to fetch pitstop analysis" });
+    }
+  });
+
+  // Get DRS zone analysis
+  app.post("/api/f1/drs-analysis", async (req, res) => {
+    try {
+      const { year, gp, session, driver, lap } = req.body;
+      const pythonPath = path.resolve(__dirname, '../python/f1_data_fetcher.py');
+      
+      const result = execSync(
+        `python3 ${pythonPath} drs-analysis ${year} "${gp}" ${session} ${driver} ${lap}`,
+        { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 }
+      );
+      
+      res.json(JSON.parse(result));
+    } catch (error) {
+      console.error("Error fetching DRS analysis:", error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to fetch DRS analysis" });
+    }
+  });
+
+  // Get race strategy analysis
+  app.post("/api/f1/strategy-analysis", async (req, res) => {
+    try {
+      const { year, gp, session } = req.body;
+      const pythonPath = path.resolve(__dirname, '../python/f1_data_fetcher.py');
+      
+      const result = execSync(
+        `python3 ${pythonPath} strategy-analysis ${year} "${gp}" ${session}`,
+        { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 }
+      );
+      
+      res.json(JSON.parse(result));
+    } catch (error) {
+      console.error("Error fetching strategy analysis:", error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to fetch strategy analysis" });
+    }
+  });
+
+  // Get race insights
+  app.post("/api/f1/race-insights", async (req, res) => {
+    try {
+      const { year, gp, session } = req.body;
+      const pythonPath = path.resolve(__dirname, '../python/f1_data_fetcher.py');
+      
+      const result = execSync(
+        `python3 ${pythonPath} race-insights ${year} "${gp}" ${session}`,
+        { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 }
+      );
+      
+      res.json(JSON.parse(result));
+    } catch (error) {
+      console.error("Error fetching race insights:", error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to fetch race insights" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

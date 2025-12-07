@@ -868,6 +868,332 @@ def main():
             }
             print(json.dumps(result))
 
+        elif command == "weather-analysis":
+            if len(sys.argv) < 5:
+                raise Exception("Usage: weather-analysis <year> <gp> <session_type>")
+
+            year = sys.argv[2]
+            gp = sys.argv[3]
+            session_type = sys.argv[4]
+
+            session = fastf1.get_session(int(year), gp, session_type)
+            session.load()
+
+            weather = session.weather_data if hasattr(session, 'weather_data') and session.weather_data is not None else None
+            
+            if weather is not None and len(weather) > 0:
+                avg_air_temp = float(weather['AirTemp'].mean()) if 'AirTemp' in weather.columns else 25.0
+                avg_track_temp = float(weather['TrackTemp'].mean()) if 'TrackTemp' in weather.columns else 35.0
+                avg_humidity = float(weather['Humidity'].mean()) if 'Humidity' in weather.columns else 50.0
+                avg_pressure = float(weather['Pressure'].mean()) if 'Pressure' in weather.columns else 1013.0
+                avg_wind_speed = float(weather['WindSpeed'].mean()) if 'WindSpeed' in weather.columns else 5.0
+                avg_wind_dir = float(weather['WindDirection'].mean()) if 'WindDirection' in weather.columns else 180.0
+                rain = bool(weather['Rainfall'].any()) if 'Rainfall' in weather.columns else False
+                
+                temp_variance = float(weather['AirTemp'].std()) if 'AirTemp' in weather.columns else 0.0
+                track_evolution = float(weather['TrackTemp'].iloc[-1] - weather['TrackTemp'].iloc[0]) if 'TrackTemp' in weather.columns and len(weather) > 1 else 0.0
+            else:
+                avg_air_temp = 25.0
+                avg_track_temp = 35.0
+                avg_humidity = 50.0
+                avg_pressure = 1013.0
+                avg_wind_speed = 5.0
+                avg_wind_dir = 180.0
+                rain = False
+                temp_variance = 0.0
+                track_evolution = 0.0
+
+            grip_level = 'high' if avg_track_temp > 30 and not rain else 'medium' if avg_track_temp > 20 else 'low'
+            tire_wear_factor = 1.0 + (avg_track_temp - 30) * 0.02 if avg_track_temp > 30 else 1.0
+            
+            result = {
+                'airTemp': avg_air_temp,
+                'trackTemp': avg_track_temp,
+                'humidity': avg_humidity,
+                'pressure': avg_pressure,
+                'windSpeed': avg_wind_speed,
+                'windDirection': avg_wind_dir,
+                'rainfall': rain,
+                'tempVariance': temp_variance,
+                'trackEvolution': track_evolution,
+                'gripLevel': grip_level,
+                'tireWearFactor': tire_wear_factor,
+                'conditions': 'wet' if rain else 'dry'
+            }
+            print(json.dumps(result))
+
+        elif command == "pitstop-analysis":
+            if len(sys.argv) < 5:
+                raise Exception("Usage: pitstop-analysis <year> <gp> <session_type>")
+
+            year = sys.argv[2]
+            gp = sys.argv[3]
+            session_type = sys.argv[4]
+
+            session = fastf1.get_session(int(year), gp, session_type)
+            session.load()
+
+            laps = session.laps
+            drivers = laps['Driver'].unique().tolist()
+            
+            pitstop_data = []
+            for driver in drivers:
+                driver_laps = laps[laps['Driver'] == driver].sort_values('LapNumber')
+                
+                pit_laps = []
+                compounds_used = []
+                stint_info = []
+                
+                current_compound = None
+                stint_start = 1
+                
+                for _, lap in driver_laps.iterrows():
+                    compound = str(lap['Compound']).upper() if pd.notna(lap['Compound']) else 'UNKNOWN'
+                    
+                    if compound not in compounds_used and compound != 'UNKNOWN':
+                        compounds_used.append(compound)
+                    
+                    if current_compound is not None and compound != current_compound:
+                        pit_laps.append(int(lap['LapNumber']))
+                        stint_info.append({
+                            'compound': current_compound,
+                            'startLap': stint_start,
+                            'endLap': int(lap['LapNumber']) - 1,
+                            'laps': int(lap['LapNumber']) - stint_start
+                        })
+                        stint_start = int(lap['LapNumber'])
+                    
+                    current_compound = compound
+                
+                if current_compound:
+                    max_lap = int(driver_laps['LapNumber'].max())
+                    stint_info.append({
+                        'compound': current_compound,
+                        'startLap': stint_start,
+                        'endLap': max_lap,
+                        'laps': max_lap - stint_start + 1
+                    })
+                
+                pitstop_data.append({
+                    'driver': driver,
+                    'pitStops': len(pit_laps),
+                    'pitLaps': pit_laps,
+                    'compoundsUsed': compounds_used,
+                    'stints': stint_info,
+                    'totalLaps': int(driver_laps['LapNumber'].max()) if len(driver_laps) > 0 else 0
+                })
+            
+            avg_stops = sum(d['pitStops'] for d in pitstop_data) / len(pitstop_data) if pitstop_data else 0
+            
+            result = {
+                'drivers': pitstop_data,
+                'averageStops': avg_stops,
+                'sessionType': session_type
+            }
+            print(json.dumps(result))
+
+        elif command == "drs-analysis":
+            if len(sys.argv) < 7:
+                raise Exception("Usage: drs-analysis <year> <gp> <session_type> <driver> <lap>")
+
+            year = sys.argv[2]
+            gp = sys.argv[3]
+            session_type = sys.argv[4]
+            driver = sys.argv[5]
+            lap_number = sys.argv[6]
+
+            session = fastf1.get_session(int(year), gp, session_type)
+            session.load()
+
+            lap = session.laps[(session.laps['Driver'] == driver) & (session.laps['LapNumber'] == int(lap_number))].iloc[0]
+            telemetry = lap.get_telemetry()
+
+            drs = telemetry['DRS'].values if 'DRS' in telemetry.columns else []
+            speed = telemetry['Speed'].values if 'Speed' in telemetry.columns else []
+            distance = telemetry['Distance'].values if 'Distance' in telemetry.columns else []
+            throttle = telemetry['Throttle'].values if 'Throttle' in telemetry.columns else []
+
+            drs_zones = []
+            in_zone = False
+            zone_start = 0
+            zone_start_speed = 0
+            
+            for i, d in enumerate(drs):
+                if d > 0 and not in_zone:
+                    in_zone = True
+                    zone_start = i
+                    zone_start_speed = speed[i] if i < len(speed) else 0
+                elif d == 0 and in_zone:
+                    in_zone = False
+                    zone_end = i
+                    zone_end_speed = speed[i] if i < len(speed) else 0
+                    
+                    avg_speed_gain = (zone_end_speed - zone_start_speed) if zone_end_speed > zone_start_speed else 0
+                    zone_distance = distance[zone_end] - distance[zone_start] if zone_end < len(distance) and zone_start < len(distance) else 0
+                    
+                    drs_zones.append({
+                        'zoneNumber': len(drs_zones) + 1,
+                        'startDistance': float(distance[zone_start]) if zone_start < len(distance) else 0,
+                        'endDistance': float(distance[zone_end]) if zone_end < len(distance) else 0,
+                        'length': float(zone_distance),
+                        'entrySpeed': float(zone_start_speed),
+                        'exitSpeed': float(zone_end_speed),
+                        'speedGain': float(avg_speed_gain),
+                        'avgThrottle': float(np.mean(throttle[zone_start:zone_end])) if zone_end > zone_start else 0
+                    })
+            
+            total_drs_time = float(np.sum(drs > 0) / len(drs) * 100) if len(drs) > 0 else 0
+            avg_speed_in_drs = float(np.mean(speed[drs > 0])) if len(speed) > 0 and np.any(drs > 0) else 0
+            max_speed_in_drs = float(np.max(speed[drs > 0])) if len(speed) > 0 and np.any(drs > 0) else 0
+            
+            result = {
+                'driver': driver,
+                'lap': int(lap_number),
+                'drsZones': drs_zones,
+                'totalDrsUsage': total_drs_time,
+                'avgSpeedInDrs': avg_speed_in_drs,
+                'maxSpeedInDrs': max_speed_in_drs,
+                'totalZones': len(drs_zones),
+                'totalSpeedGain': sum(z['speedGain'] for z in drs_zones)
+            }
+            print(json.dumps(result))
+
+        elif command == "strategy-analysis":
+            if len(sys.argv) < 5:
+                raise Exception("Usage: strategy-analysis <year> <gp> <session_type>")
+
+            year = sys.argv[2]
+            gp = sys.argv[3]
+            session_type = sys.argv[4]
+
+            session = fastf1.get_session(int(year), gp, session_type)
+            session.load()
+
+            laps = session.laps
+            drivers = laps['Driver'].unique().tolist()
+            
+            strategy_data = []
+            for driver in drivers:
+                driver_laps = laps[laps['Driver'] == driver].dropna(subset=['LapTime'])
+                
+                if len(driver_laps) == 0:
+                    continue
+                
+                lap_times = driver_laps['LapTime'].apply(lambda x: x.total_seconds()).values
+                lap_numbers = driver_laps['LapNumber'].values
+                
+                first_half = lap_times[:len(lap_times)//2] if len(lap_times) > 1 else lap_times
+                second_half = lap_times[len(lap_times)//2:] if len(lap_times) > 1 else lap_times
+                
+                pace_trend = 'improving' if np.mean(second_half) < np.mean(first_half) else 'declining'
+                consistency = float(np.std(lap_times)) if len(lap_times) > 1 else 0
+                
+                compounds = driver_laps['Compound'].unique().tolist()
+                compound_pace = {}
+                for comp in compounds:
+                    comp_laps = driver_laps[driver_laps['Compound'] == comp]
+                    if len(comp_laps) > 0:
+                        comp_times = comp_laps['LapTime'].apply(lambda x: x.total_seconds()).values
+                        compound_pace[str(comp).upper()] = {
+                            'avgPace': float(np.mean(comp_times)),
+                            'bestPace': float(np.min(comp_times)),
+                            'laps': len(comp_laps)
+                        }
+                
+                best_lap_time = float(np.min(lap_times))
+                avg_lap_time = float(np.mean(lap_times))
+                total_race_time = float(np.sum(lap_times))
+                
+                strategy_data.append({
+                    'driver': driver,
+                    'bestLap': best_lap_time,
+                    'avgLap': avg_lap_time,
+                    'consistency': consistency,
+                    'paceTrend': pace_trend,
+                    'compoundPace': compound_pace,
+                    'totalLaps': len(driver_laps),
+                    'totalTime': total_race_time,
+                    'gapToBest': avg_lap_time - best_lap_time
+                })
+            
+            strategy_data.sort(key=lambda x: x['avgLap'])
+            
+            for i, s in enumerate(strategy_data):
+                s['position'] = i + 1
+                s['gapToLeader'] = s['avgLap'] - strategy_data[0]['avgLap'] if len(strategy_data) > 0 else 0
+            
+            result = {
+                'drivers': strategy_data,
+                'sessionType': session_type,
+                'totalDrivers': len(strategy_data)
+            }
+            print(json.dumps(result))
+
+        elif command == "race-insights":
+            if len(sys.argv) < 5:
+                raise Exception("Usage: race-insights <year> <gp> <session_type>")
+
+            year = sys.argv[2]
+            gp = sys.argv[3]
+            session_type = sys.argv[4]
+
+            session = fastf1.get_session(int(year), gp, session_type)
+            session.load()
+
+            laps = session.laps
+            drivers = laps['Driver'].unique().tolist()
+            
+            driver_stats = []
+            for driver in drivers:
+                driver_laps = laps[laps['Driver'] == driver].dropna(subset=['LapTime'])
+                
+                if len(driver_laps) == 0:
+                    continue
+                
+                lap_times = driver_laps['LapTime'].apply(lambda x: x.total_seconds()).values
+                
+                best_lap = float(np.min(lap_times))
+                avg_lap = float(np.mean(lap_times))
+                consistency = float(np.std(lap_times))
+                
+                performance_score = 100 - (consistency * 2) - ((avg_lap - best_lap) * 5)
+                performance_score = max(0, min(100, performance_score))
+                
+                driver_stats.append({
+                    'driver': driver,
+                    'bestLap': best_lap,
+                    'avgLap': avg_lap,
+                    'consistency': consistency,
+                    'performanceScore': performance_score,
+                    'totalLaps': len(driver_laps)
+                })
+            
+            driver_stats.sort(key=lambda x: x['performanceScore'], reverse=True)
+            
+            top_performers = driver_stats[:3] if len(driver_stats) >= 3 else driver_stats
+            most_consistent = sorted(driver_stats, key=lambda x: x['consistency'])[:3] if len(driver_stats) >= 3 else driver_stats
+            
+            insights = []
+            if len(driver_stats) > 0:
+                best_driver = driver_stats[0]
+                insights.append(f"{best_driver['driver']} leads performance with a score of {best_driver['performanceScore']:.1f}")
+            
+            if len(most_consistent) > 0:
+                insights.append(f"{most_consistent[0]['driver']} is the most consistent driver with {most_consistent[0]['consistency']:.3f}s variance")
+            
+            avg_all_times = np.mean([s['avgLap'] for s in driver_stats]) if driver_stats else 0
+            insights.append(f"Session average pace: {avg_all_times:.3f}s")
+            
+            result = {
+                'topPerformers': top_performers,
+                'mostConsistent': most_consistent,
+                'allDrivers': driver_stats,
+                'insights': insights,
+                'sessionAvgPace': float(avg_all_times),
+                'totalDrivers': len(driver_stats)
+            }
+            print(json.dumps(result))
+
         else:
             raise Exception(f"Unknown command: {command}")
 

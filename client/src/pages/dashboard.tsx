@@ -6,6 +6,7 @@ import StatisticsCards from "@/components/statistics-cards";
 import AdditionalAnalysis from "@/components/additional-analysis";
 import DriverComparison from "@/components/driver-comparison";
 import AdvancedAnalysis from "@/components/advanced-analysis";
+import RaceInsights from "@/components/race-insights";
 import { F1SessionResponse, F1TelemetryResponse } from "@shared/schema";
 
 export default function Dashboard() {
@@ -80,6 +81,9 @@ export default function Dashboard() {
 
         {/* Advanced Analysis Section */}
         <AdvancedAnalysis sessionData={sessionData} filters={selectedFilters} />
+
+        {/* Race Insights Section */}
+        <RaceInsights sessionData={sessionData} filters={selectedFilters} />
       </main>
 
       {/* Footer */}

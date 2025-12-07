@@ -5,3 +5,8 @@
 [x] 5. Restart the workflow and verify the application is working
 [x] 6. Confirm API endpoints are responding correctly
 [x] 7. Mark the import as completed
+[x] 8. Add 4 new analysis types (Weather Impact, Pit Stop Strategy, DRS Zone Analysis, Race Strategy)
+[x] 9. Create backend API endpoints for new analysis types
+[x] 10. Add Python functions for new analysis calculations
+[x] 11. Create new Race Insights section with performance charts and rankings
+[x] 12. Update dashboard to include new section
