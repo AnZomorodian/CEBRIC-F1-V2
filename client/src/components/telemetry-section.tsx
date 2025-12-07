@@ -127,6 +127,7 @@ export default function TelemetrySection({
       brake: Math.min((telemetry.brake?.[idx] || 0), 100),
       drs: telemetry.drs?.[idx] || 0,
       gear: telemetry.gear?.[idx] || 0,
+      rpm: telemetry.rpm?.[idx] || 0,
     }));
   };
 
@@ -141,7 +142,7 @@ export default function TelemetrySection({
     return {
       distance: d1.distance,
       [`${telemetryData.driver1.driver}_speed`]: d1.speed,
-      ...(d2 && telemetryData.driver2 && { [`${telemetryData.driver2.driver}_speed`]: d2.speed }),
+      ...(d2 && telemetryData.driver2 ? { [`${telemetryData.driver2.driver}_speed`]: d2.speed } : {}),
     };
   }) : [];
 
@@ -220,6 +221,25 @@ export default function TelemetrySection({
       [`${telemetryData.driver1.driver}_gear`]: d1.gear || estimateGear(d1.speed),
       ...(d2 && telemetryData.driver2 && {
         [`${telemetryData.driver2.driver}_gear`]: d2.gear || estimateGear(d2.speed),
+      }),
+    };
+  }) : [];
+
+  // RPM data - uses actual RPM from telemetry if available, falls back to speed/gear estimation
+  const combinedRPMData = telemetryData ? driver1ChartData.map((d1: any, idx: number) => {
+    const d2 = driver2ChartData[idx];
+    // Fallback: estimate RPM from speed and gear if not in data
+    const estimateRPM = (speed: number, gear: number) => {
+      if (gear === 0) return 0;
+      // Rough estimation: F1 engines rev to ~15000 RPM, gears affect ratio
+      const baseRPM = (speed / gear) * 100;
+      return Math.min(baseRPM, 15000);
+    };
+    return {
+      distance: d1.distance,
+      [`${telemetryData.driver1.driver}_rpm`]: d1.rpm || estimateRPM(d1.speed, d1.gear),
+      ...(d2 && telemetryData.driver2 && {
+        [`${telemetryData.driver2.driver}_rpm`]: d2.rpm || estimateRPM(d2.speed, d2.gear),
       }),
     };
   }) : [];
@@ -539,11 +559,10 @@ export default function TelemetrySection({
                         stroke={driver2Color} 
                         fill={driver2Color}
                         fillOpacity={0.3}
-                        data={driver2ChartData}
                         name={`${telemetryData.driver2.driver} Speed`}
                       />
                     )}
-                    </AreaChart>
+                  </AreaChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
@@ -634,6 +653,43 @@ export default function TelemetrySection({
                       />
                     )}
                   </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* RPM Chart */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Engine RPM</CardTitle>
+                <CardDescription>Revolutions Per Minute vs Track Distance</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={combinedRPMData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="distance" label={{ value: 'Distance (m)', position: 'insideBottom', offset: -5 }} />
+                    <YAxis label={{ value: 'RPM', angle: -90, position: 'insideLeft' }} />
+                    <Tooltip formatter={(value, name) => [Number(value).toFixed(0) + ' RPM', String(name || '')]}/>
+                    <Legend />
+                    <Area 
+                      type="monotone" 
+                      dataKey={`${telemetryData.driver1.driver}_rpm`} 
+                      stroke={driver1Color} 
+                      fill={driver1Color}
+                      fillOpacity={0.4}
+                      name={`${telemetryData.driver1.driver} RPM`}
+                    />
+                    {telemetryData.driver2 && (
+                      <Area 
+                        type="monotone" 
+                        dataKey={`${telemetryData.driver2.driver}_rpm`} 
+                        stroke={driver2Color} 
+                        fill={driver2Color}
+                        fillOpacity={0.4}
+                        name={`${telemetryData.driver2.driver} RPM`}
+                      />
+                    )}
+                  </AreaChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
