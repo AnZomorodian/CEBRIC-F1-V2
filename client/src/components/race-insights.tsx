@@ -56,13 +56,21 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
 
   const performanceColors = ['#00d9ff', '#ff3853', '#fbbf24', '#22c55e', '#a855f7', '#f97316', '#ec4899', '#14b8a6'];
 
-  const radarData = insightsData?.topPerformers?.map((driver: any, idx: number) => ({
-    driver: driver.driver,
-    'Performance Score': driver.performanceScore,
-    'Consistency': Math.max(0, 100 - driver.consistency * 50),
-    'Best Pace': Math.max(0, 100 - (driver.bestLap - (insightsData.topPerformers[0]?.bestLap || driver.bestLap)) * 10),
-    'Avg Pace': Math.max(0, 100 - (driver.avgLap - (insightsData.topPerformers[0]?.avgLap || driver.avgLap)) * 10),
-  })) || [];
+  const radarData = insightsData?.topPerformers?.slice(0, 3).map((driver: any) => {
+    const baseline = insightsData.topPerformers[0];
+    const performanceScore = Math.min(100, driver.performanceScore || 0);
+    const consistencyScore = Math.max(0, Math.min(100, 100 - (driver.consistency / baseline.consistency) * 50));
+    const bestPaceScore = Math.max(0, Math.min(100, 100 - ((driver.bestLap - baseline.bestLap) / baseline.bestLap) * 500));
+    const avgPaceScore = Math.max(0, Math.min(100, 100 - ((driver.avgLap - baseline.avgLap) / baseline.avgLap) * 500));
+    
+    return {
+      driver: driver.driver,
+      'Performance Score': performanceScore,
+      'Consistency': consistencyScore,
+      'Best Pace': bestPaceScore,
+      'Avg Pace': avgPaceScore,
+    };
+  }) || [];
 
   return (
     <Card className="mt-6" data-testid="race-insights">
@@ -271,19 +279,27 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Top 3 Performance Radar</CardTitle>
-                  <CardDescription>Multi-dimensional comparison of leading drivers</CardDescription>
+                  <CardDescription>Multi-dimensional comparison of leading drivers (normalized scores)</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={350}>
+                  <ResponsiveContainer width="100%" height={400}>
                     <RadarChart data={[
                       { metric: 'Performance Score', [radarData[0]?.driver]: radarData[0]?.['Performance Score'], [radarData[1]?.driver]: radarData[1]?.['Performance Score'], [radarData[2]?.driver]: radarData[2]?.['Performance Score'] },
                       { metric: 'Consistency', [radarData[0]?.driver]: radarData[0]?.['Consistency'], [radarData[1]?.driver]: radarData[1]?.['Consistency'], [radarData[2]?.driver]: radarData[2]?.['Consistency'] },
                       { metric: 'Best Pace', [radarData[0]?.driver]: radarData[0]?.['Best Pace'], [radarData[1]?.driver]: radarData[1]?.['Best Pace'], [radarData[2]?.driver]: radarData[2]?.['Best Pace'] },
                       { metric: 'Avg Pace', [radarData[0]?.driver]: radarData[0]?.['Avg Pace'], [radarData[1]?.driver]: radarData[1]?.['Avg Pace'], [radarData[2]?.driver]: radarData[2]?.['Avg Pace'] },
                     ]}>
-                      <PolarGrid />
-                      <PolarAngleAxis dataKey="metric" />
-                      <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                      <PolarGrid gridType="polygon" stroke="rgba(255,255,255,0.2)" />
+                      <PolarAngleAxis 
+                        dataKey="metric" 
+                        tick={{ fill: '#888', fontSize: 12 }}
+                      />
+                      <PolarRadiusAxis 
+                        angle={30} 
+                        domain={[0, 100]} 
+                        tick={{ fill: '#888' }}
+                        tickCount={6}
+                      />
                       {radarData.slice(0, 3).map((entry: any, idx: number) => (
                         <Radar
                           key={entry.driver}
@@ -291,10 +307,17 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
                           dataKey={entry.driver}
                           stroke={performanceColors[idx]}
                           fill={performanceColors[idx]}
-                          fillOpacity={0.3}
+                          fillOpacity={0.25}
+                          strokeWidth={2}
                         />
                       ))}
-                      <Legend />
+                      <Legend 
+                        wrapperStyle={{ paddingTop: '20px' }}
+                      />
+                      <Tooltip 
+                        formatter={(value: number) => value.toFixed(1)}
+                        contentStyle={{ backgroundColor: 'rgba(18, 18, 20, 0.95)', border: '1px solid #00d9ff' }}
+                      />
                     </RadarChart>
                   </ResponsiveContainer>
                 </CardContent>

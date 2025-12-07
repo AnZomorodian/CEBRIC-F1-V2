@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -56,7 +55,7 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
   const handleLoadAnalysis = () => {
     const sessionOnlyTypes = ['weather', 'pitstop', 'strategy'];
     const needsDriverAndLap = !sessionOnlyTypes.includes(analysisType);
-    
+
     if (!filters.year || !filters.gp || !filters.session) {
       toast({
         title: "Missing Parameters",
@@ -65,7 +64,7 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
       });
       return;
     }
-    
+
     if (needsDriverAndLap && (!selectedDriver || !selectedLap)) {
       toast({
         title: "Missing Parameters",
@@ -229,7 +228,7 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
                 <CardContent>
                   <div className="text-2xl font-bold">
                     {sessionData?.laps && sessionData.laps.length > 0
-                      ? `${((sessionData.statistics.totalLaps || 0) * 5).toFixed(0)} km`
+                      ? `${(sessionData.statistics.totalLaps || 0 * 5).toFixed(0)} km`
                       : 'N/A'}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">Approx. track length × laps</p>
@@ -696,13 +695,13 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
                             const currentAge = analysisData.tireAge || 0;
                             const degradationRate = Math.abs(analysisData.degradationRate || 0);
                             const baseWearRate = 2.5;
-                            
+
                             return Array.from({ length: maxLife + 1 }, (_, i) => {
                               const naturalWear = (i / maxLife) * 100;
                               const degradationImpact = degradationRate * i * 30;
                               const totalWear = Math.min(100, naturalWear + degradationImpact);
                               const performanceLoss = Math.pow(totalWear / 100, 1.5) * 100;
-                              
+
                               return {
                                 lap: i,
                                 wear: totalWear,
@@ -841,7 +840,7 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
                               {analysisData.performance.charAt(0).toUpperCase() + analysisData.performance.slice(1)}
                             </span>
                           </div>
-                          
+
                           <div className="mt-4 p-4 bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-lg border border-orange-500/20">
                             <h4 className="font-semibold mb-3 flex items-center gap-2">
                               <i className="fas fa-lightbulb text-yellow-400"></i>
@@ -1024,7 +1023,7 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
                         </div>
                       </CardContent>
                     </Card>
-                    
+
                     {/* Energy Usage Visualization */}
                     <Card>
                       <CardHeader>
@@ -1543,13 +1542,13 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
                   <Card>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm flex items-center gap-2">
-                        <i className="fas fa-thermometer-half text-red-400"></i>
+                        <i className="fas fa-thermometer-half text-primary"></i>
                         Air Temperature
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold text-primary">
-                        {weatherData.avgAirTemp?.toFixed(1) || weatherData.currentConditions?.airTemp?.toFixed(1) || 'N/A'}C
+                        {weatherData.airTemp != null ? `${weatherData.airTemp.toFixed(1)}°C` : 'N/A'}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">Session average</p>
                     </CardContent>
@@ -1564,7 +1563,7 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold text-secondary">
-                        {weatherData.avgTrackTemp?.toFixed(1) || weatherData.currentConditions?.trackTemp?.toFixed(1) || 'N/A'}C
+                        {weatherData.trackTemp != null ? `${weatherData.trackTemp.toFixed(1)}°C` : 'N/A'}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">Session average</p>
                     </CardContent>
@@ -1579,7 +1578,7 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold text-accent">
-                        {weatherData.avgHumidity?.toFixed(0) || weatherData.currentConditions?.humidity?.toFixed(0) || 'N/A'}%
+                        {weatherData.humidity != null ? `${weatherData.humidity.toFixed(0)}%` : 'N/A'}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">Session average</p>
                     </CardContent>
@@ -1594,7 +1593,7 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">
-                        {weatherData.avgWindSpeed?.toFixed(1) || weatherData.currentConditions?.windSpeed?.toFixed(1) || 'N/A'} m/s
+                        {weatherData.windSpeed != null ? `${weatherData.windSpeed.toFixed(1)} m/s` : 'N/A'}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">Session average</p>
                     </CardContent>
@@ -1613,18 +1612,22 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="p-4 bg-muted/30 rounded-lg border border-border text-center">
                         <i className={`fas fa-${weatherData.rainfall || weatherData.currentConditions?.rainfall ? 'cloud-rain text-blue-400' : 'sun text-yellow-400'} text-3xl mb-2`}></i>
-                        <p className="font-semibold">{weatherData.rainfall || weatherData.currentConditions?.rainfall ? 'Wet' : 'Dry'}</p>
-                        <p className="text-xs text-muted-foreground">Track Surface</p>
+                        <p className="font-semibold">{weatherData.conditions || 'Dry'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {weatherData.rainfall ? 'Wet Surface' : 'Dry Surface'}
+                        </p>
                       </div>
                       <div className="p-4 bg-muted/30 rounded-lg border border-border text-center">
-                        <i className="fas fa-compass text-green-400 text-3xl mb-2"></i>
-                        <p className="font-semibold">{weatherData.avgWindDirection?.toFixed(0) || weatherData.currentConditions?.windDirection?.toFixed(0) || 'N/A'}</p>
-                        <p className="text-xs text-muted-foreground">Wind Direction</p>
+                        <i className="fas fa-compass text-purple-400 text-3xl mb-2"></i>
+                        <p className="font-semibold">{weatherData.windDirection != null ? `${weatherData.windDirection.toFixed(0)}°` : 'N/A'}</p>
+                        <p className="text-xs text-muted-foreground">Session average</p>
                       </div>
                       <div className="p-4 bg-muted/30 rounded-lg border border-border text-center">
-                        <i className="fas fa-gauge-high text-purple-400 text-3xl mb-2"></i>
-                        <p className="font-semibold">{weatherData.avgPressure?.toFixed(0) || weatherData.currentConditions?.pressure?.toFixed(0) || 'N/A'} mbar</p>
-                        <p className="text-xs text-muted-foreground">Air Pressure</p>
+                        <i className="fas fa-gauge-high text-green-400 text-3xl mb-2"></i>
+                        <p className="font-semibold">{weatherData.pressure != null ? `${weatherData.pressure.toFixed(0)} mbar` : 'N/A'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {weatherData.pressure >= 1010 && weatherData.pressure <= 1020 ? 'Normal' : weatherData.pressure > 1020 ? 'High' : 'Low'}
+                        </p>
                       </div>
                       <div className="p-4 bg-muted/30 rounded-lg border border-border text-center">
                         <i className={`fas fa-${weatherData.trackStatus === 'Green' ? 'check-circle text-green-400' : weatherData.trackStatus === 'Yellow' ? 'exclamation-triangle text-yellow-400' : 'flag text-red-400'} text-3xl mb-2`}></i>
