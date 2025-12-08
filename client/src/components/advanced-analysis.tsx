@@ -303,31 +303,104 @@ export default function AdvancedAnalysis({ sessionData, filters }: AdvancedAnaly
             {sessionData?.laps && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Lap Time Distribution</CardTitle>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <i className="fas fa-chart-bar text-primary"></i>
+                      Lap Time Distribution
+                    </span>
+                  </CardTitle>
+                  <CardDescription>
+                    Comprehensive analysis of driver lap times including best lap, average pace, median performance, and consistency variance
+                  </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
+                <CardContent className="space-y-4">
+                  <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={sessionData.drivers.map(driver => {
                       const driverLaps = sessionData.laps.filter(l => l.driver === driver && l.lapTime > 0);
+                      const sortedLaps = [...driverLaps.map(l => l.lapTime)].sort((a, b) => a - b);
+                      const median = sortedLaps.length > 0 
+                        ? sortedLaps.length % 2 === 0 
+                          ? (sortedLaps[sortedLaps.length / 2 - 1] + sortedLaps[sortedLaps.length / 2]) / 2
+                          : sortedLaps[Math.floor(sortedLaps.length / 2)]
+                        : 0;
+                      const avg = driverLaps.length > 0 
+                        ? driverLaps.reduce((sum, l) => sum + l.lapTime, 0) / driverLaps.length 
+                        : 0;
+                      const variance = driverLaps.length > 0
+                        ? Math.sqrt(driverLaps.reduce((sum, l) => sum + Math.pow(l.lapTime - avg, 2), 0) / driverLaps.length)
+                        : 0;
                       return {
                         driver,
-                        avgLap: driverLaps.length > 0 
-                          ? driverLaps.reduce((sum, l) => sum + l.lapTime, 0) / driverLaps.length 
-                          : 0,
+                        avgLap: avg,
                         bestLap: driverLaps.length > 0 
                           ? Math.min(...driverLaps.map(l => l.lapTime)) 
                           : 0,
+                        medianLap: median,
+                        variance: variance,
                       };
                     })}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="driver" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => `${Number(value).toFixed(3)}s`} />
-                      <Legend />
-                      <Bar dataKey="bestLap" fill="#00d9ff" name="Best Lap" />
-                      <Bar dataKey="avgLap" fill="#ff3853" name="Avg Lap" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                      <XAxis 
+                        dataKey="driver" 
+                        tick={{ fill: '#A0A0A0', fontSize: 11 }}
+                        stroke="rgba(255,255,255,0.2)"
+                      />
+                      <YAxis 
+                        tick={{ fill: '#A0A0A0', fontSize: 11 }}
+                        stroke="rgba(255,255,255,0.2)"
+                        tickFormatter={(value) => `${value.toFixed(2)}s`}
+                      />
+                      <Tooltip 
+                        formatter={(value) => `${Number(value).toFixed(3)}s`}
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(18, 18, 20, 0.95)', 
+                          border: '1px solid rgba(0, 217, 255, 0.3)',
+                          borderRadius: '8px'
+                        }}
+                        labelStyle={{ color: '#00d9ff', fontWeight: 'bold' }}
+                      />
+                      <Legend 
+                        wrapperStyle={{ paddingTop: '10px' }}
+                        iconType="circle"
+                      />
+                      <Bar dataKey="bestLap" fill="#00d9ff" name="Best Lap" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="medianLap" fill="#fbbf24" name="Median Lap" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="avgLap" fill="#ff3853" name="Avg Lap" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="variance" fill="#22c55e" name="Std Deviation" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
+
+                  {/* Performance Metrics Summary */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                    <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg border border-primary/30 text-center">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <div className="w-3 h-3 rounded-full bg-primary"></div>
+                        <p className="text-xs text-muted-foreground">Best Lap</p>
+                      </div>
+                      <p className="text-sm text-primary font-semibold">Ultimate pace achieved</p>
+                    </div>
+                    <div className="p-3 bg-gradient-to-br from-yellow-500/20 to-yellow-500/5 rounded-lg border border-yellow-500/30 text-center">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <p className="text-xs text-muted-foreground">Median Lap</p>
+                      </div>
+                      <p className="text-sm text-yellow-400 font-semibold">Middle performance value</p>
+                    </div>
+                    <div className="p-3 bg-gradient-to-br from-red-500/20 to-red-500/5 rounded-lg border border-red-500/30 text-center">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                        <p className="text-xs text-muted-foreground">Avg Lap</p>
+                      </div>
+                      <p className="text-sm text-red-400 font-semibold">Overall race pace</p>
+                    </div>
+                    <div className="p-3 bg-gradient-to-br from-green-500/20 to-green-500/5 rounded-lg border border-green-500/30 text-center">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        <p className="text-xs text-muted-foreground">Std Deviation</p>
+                      </div>
+                      <p className="text-sm text-green-400 font-semibold">Consistency variance</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}

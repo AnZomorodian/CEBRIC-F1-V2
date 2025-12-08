@@ -73,15 +73,6 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
     };
   }) || [];
 
-  // Scroll to top/bottom functionality
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const scrollToBottom = () => {
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-  };
-
   return (
     <Card className="mt-6" data-testid="race-insights">
       <CardHeader>
@@ -701,15 +692,6 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
           </div>
         )}
       </CardContent>
-      {/* Scroll to Top/Bottom Button */}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
-        <Button size="icon" onClick={scrollToTop} aria-label="Scroll to top">
-          <i className="fas fa-arrow-up"></i>
-        </Button>
-        <Button size="icon" onClick={scrollToBottom} aria-label="Scroll to bottom">
-          <i className="fas fa-arrow-down"></i>
-        </Button>
-      </div>
     </Card>
   );
 }
