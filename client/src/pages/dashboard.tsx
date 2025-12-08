@@ -32,10 +32,15 @@ export default function Dashboard() {
       const scrollHeight = document.documentElement.scrollHeight;
       const clientHeight = document.documentElement.clientHeight;
       
-      setShowScrollButtons(scrollTop > 300);
-      setIsAtBottom(scrollTop + clientHeight >= scrollHeight - 100);
+      const isScrollable = scrollHeight > clientHeight;
+      const nearTop = scrollTop < 300;
+      const nearBottom = scrollTop + clientHeight >= scrollHeight - 100;
+      
+      setShowScrollButtons(isScrollable && (nearTop || nearBottom));
+      setIsAtBottom(nearBottom);
     };
 
+    handleScroll(); // Check on mount
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -119,25 +124,26 @@ export default function Dashboard() {
 
       {/* Scroll Buttons */}
       {showScrollButtons && (
-        <div className="fixed right-6 bottom-6 flex flex-col gap-2 z-50">
-          {!isAtBottom && (
+        <div className="fixed right-6 bottom-6 z-50">
+          {isAtBottom ? (
+            <Button
+              onClick={scrollToTop}
+              size="icon"
+              className="h-14 w-14 rounded-full shadow-lg bg-gradient-to-br from-primary to-secondary hover:scale-110 transition-all duration-300 animate-bounce"
+              title="Scroll to top"
+            >
+              <i className="fas fa-arrow-up text-xl"></i>
+            </Button>
+          ) : (
             <Button
               onClick={scrollToBottom}
               size="icon"
-              className="h-12 w-12 rounded-full shadow-lg bg-primary hover:bg-primary/90 transition-all duration-300 hover:scale-110"
+              className="h-14 w-14 rounded-full shadow-lg bg-gradient-to-br from-secondary to-primary hover:scale-110 transition-all duration-300 animate-bounce"
               title="Scroll to bottom"
             >
-              <i className="fas fa-arrow-down text-lg"></i>
+              <i className="fas fa-arrow-down text-xl"></i>
             </Button>
           )}
-          <Button
-            onClick={scrollToTop}
-            size="icon"
-            className="h-12 w-12 rounded-full shadow-lg bg-secondary hover:bg-secondary/90 transition-all duration-300 hover:scale-110"
-            title="Scroll to top"
-          >
-            <i className="fas fa-arrow-up text-lg"></i>
-          </Button>
         </div>
       )}
 
