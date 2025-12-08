@@ -6,6 +6,7 @@ import StatisticsCards from "@/components/statistics-cards";
 import AdditionalAnalysis from "@/components/additional-analysis";
 import DriverComparison from "@/components/driver-comparison";
 import AdvancedAnalysis from "@/components/advanced-analysis";
+import RaceStartAnalysis from "@/components/race-start-analysis";
 import RaceInsights from "@/components/race-insights";
 import { F1SessionResponse, F1TelemetryResponse } from "@shared/schema";
 
@@ -87,6 +88,9 @@ export default function Dashboard() {
 
         {/* Advanced Analysis Section */}
         <AdvancedAnalysis sessionData={sessionData} filters={selectedFilters} excludeMetrics={["weather_impact", "pit_stop"]} />
+
+        {/* Race Start Analysis Section - Only shows for Race sessions */}
+        <RaceStartAnalysis sessionData={sessionData} filters={selectedFilters} />
 
         {/* Race Insights Section */}
         <RaceInsights sessionData={sessionData} filters={selectedFilters} />
