@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { F1SessionResponse } from "@shared/schema";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, LineChart, Line, Area, AreaChart } from 'recharts';
 
 interface RaceInsightsProps {
   sessionData: F1SessionResponse | null;
@@ -14,6 +14,7 @@ interface RaceInsightsProps {
 
 export default function RaceInsights({ sessionData, filters }: RaceInsightsProps) {
   const [insightsData, setInsightsData] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'overview' | 'ai-analysis'>('overview');
   const { toast } = useToast();
 
   const loadInsightsMutation = useMutation({
@@ -80,21 +81,43 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
             <i className="fas fa-lightbulb text-yellow-400"></i>
             Race Insights
           </div>
-          <Button 
-            onClick={handleLoadInsights} 
-            disabled={loadInsightsMutation.isPending || !sessionData}
-            size="sm"
-          >
-            {loadInsightsMutation.isPending ? (
-              <i className="fas fa-spinner fa-spin mr-2"></i>
-            ) : (
-              <i className="fas fa-sync-alt mr-2"></i>
-            )}
-            Generate Insights
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-2">
+              <Button
+                variant={viewMode === 'overview' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('overview')}
+              >
+                <i className="fas fa-chart-bar mr-2"></i>
+                Overview
+              </Button>
+              <Button
+                variant={viewMode === 'ai-analysis' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('ai-analysis')}
+              >
+                <i className="fas fa-brain mr-2"></i>
+                AI Analysis
+              </Button>
+            </div>
+            <Button 
+              onClick={handleLoadInsights} 
+              disabled={loadInsightsMutation.isPending || !sessionData}
+              size="sm"
+            >
+              {loadInsightsMutation.isPending ? (
+                <i className="fas fa-spinner fa-spin mr-2"></i>
+              ) : (
+                <i className="fas fa-sync-alt mr-2"></i>
+              )}
+              Generate Insights
+            </Button>
+          </div>
         </CardTitle>
         <CardDescription>
-          This section analyzes session performance data to show driver rankings based on their average lap times (not personal best laps), consistency metrics (variance from mean), and calculated performance scores. The "Best Lap" shown is each driver's fastest lap in the session, while rankings are based on nearest-to-average consistent pace.
+          {viewMode === 'overview' 
+            ? 'This section analyzes session performance data to show driver rankings based on their average lap times (not personal best laps), consistency metrics (variance from mean), and calculated performance scores.'
+            : 'Deep AI-powered analysis of the top 3 drivers with detailed performance breakdowns, strength/weakness identification, and strategic insights.'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -102,9 +125,9 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
           <div className="text-center py-12">
             <i className="fas fa-brain text-6xl text-muted mb-4 block"></i>
             <p className="text-muted-foreground mb-4">Load session data and click "Generate Insights" to see performance analysis</p>
-            <p className="text-xs text-muted-foreground">Includes top performers, consistency analysis, and pace comparisons</p>
+            <p className="text-xs text-muted-foreground">Includes top performers, consistency analysis, and AI-powered driver analysis</p>
           </div>
-        ) : (
+        ) : viewMode === 'overview' ? (
           <div className="space-y-6">
             {/* Key Insights Summary */}
             <Card className="bg-gradient-to-r from-primary/10 to-secondary/10">
@@ -357,6 +380,256 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
                 </CardContent>
               </Card>
             )}
+          </div>
+        ) : (
+          // AI Analysis Section
+          <div className="space-y-6">
+            {/* AI Analysis Header */}
+            <Card className="bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-cyan-500/10 border-purple-500/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <i className="fas fa-robot text-purple-400"></i>
+                  AI-Powered Performance Analysis
+                </CardTitle>
+                <CardDescription>Advanced algorithmic breakdown of top 3 drivers' performance metrics and racing characteristics</CardDescription>
+              </CardHeader>
+            </Card>
+
+            {/* Top 3 Drivers Detailed Analysis */}
+            <div className="grid grid-cols-1 gap-6">
+              {insightsData.topPerformers?.slice(0, 3).map((driver: any, idx: number) => {
+                // Calculate additional AI metrics
+                const paceAdvantage = idx === 0 ? 0 : ((driver.avgLap - insightsData.topPerformers[0].avgLap) / insightsData.topPerformers[0].avgLap * 100);
+                const consistencyRating = driver.consistency < 0.3 ? 'Excellent' : driver.consistency < 0.6 ? 'Good' : driver.consistency < 1.0 ? 'Average' : 'Poor';
+                const lapTimeDelta = driver.avgLap - driver.bestLap;
+                const performanceGap = idx === 0 ? 0 : insightsData.topPerformers[0].performanceScore - driver.performanceScore;
+                
+                // Generate AI insights
+                const strengths = [];
+                const weaknesses = [];
+                const recommendations = [];
+
+                if (driver.consistency < 0.4) {
+                  strengths.push("Exceptional consistency in lap times");
+                } else if (driver.consistency > 0.8) {
+                  weaknesses.push("Inconsistent pace throughout the session");
+                }
+
+                if (lapTimeDelta < 0.5) {
+                  strengths.push("Minimal gap between best and average lap");
+                } else if (lapTimeDelta > 1.5) {
+                  weaknesses.push("Significant variance between peak and average performance");
+                }
+
+                if (driver.performanceScore > 85) {
+                  strengths.push("Outstanding overall performance score");
+                } else if (driver.performanceScore < 70) {
+                  weaknesses.push("Room for improvement in overall performance");
+                }
+
+                // Recommendations based on analysis
+                if (driver.consistency > 0.6) {
+                  recommendations.push("Focus on consistency training and race simulation");
+                }
+                if (lapTimeDelta > 1.0) {
+                  recommendations.push("Work on maintaining qualifying pace during race stints");
+                }
+                if (idx > 0 && paceAdvantage > 0.5) {
+                  recommendations.push("Analyze setup differences with faster drivers");
+                }
+
+                return (
+                  <Card key={driver.driver} className={`border-2 ${
+                    idx === 0 ? 'border-yellow-500/50 bg-gradient-to-br from-yellow-500/5 to-orange-500/5' :
+                    idx === 1 ? 'border-gray-400/50 bg-gradient-to-br from-gray-400/5 to-gray-600/5' :
+                    'border-orange-600/50 bg-gradient-to-br from-orange-600/5 to-red-600/5'
+                  }`}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className={`w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold ${
+                            idx === 0 ? 'bg-yellow-500 text-black' :
+                            idx === 1 ? 'bg-gray-400 text-black' :
+                            'bg-orange-600 text-white'
+                          }`}>
+                            {idx + 1}
+                          </span>
+                          <div>
+                            <CardTitle className="text-2xl">{driver.driver}</CardTitle>
+                            <CardDescription>AI Performance Analysis</CardDescription>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-3xl font-bold text-primary">{driver.performanceScore.toFixed(1)}</div>
+                          <p className="text-xs text-muted-foreground">Performance Score</p>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Performance Metrics Grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="p-4 bg-muted/30 rounded-lg border border-border">
+                          <p className="text-xs text-muted-foreground mb-1">Best Lap</p>
+                          <p className="text-lg font-mono font-bold text-primary">{driver.bestLap.toFixed(3)}s</p>
+                        </div>
+                        <div className="p-4 bg-muted/30 rounded-lg border border-border">
+                          <p className="text-xs text-muted-foreground mb-1">Average Lap</p>
+                          <p className="text-lg font-mono font-bold">{driver.avgLap.toFixed(3)}s</p>
+                        </div>
+                        <div className="p-4 bg-muted/30 rounded-lg border border-border">
+                          <p className="text-xs text-muted-foreground mb-1">Consistency</p>
+                          <p className={`text-lg font-mono font-bold ${
+                            driver.consistency < 0.4 ? 'text-green-400' : 
+                            driver.consistency < 0.8 ? 'text-yellow-400' : 'text-red-400'
+                          }`}>{driver.consistency.toFixed(3)}s</p>
+                          <p className="text-xs text-muted-foreground mt-1">{consistencyRating}</p>
+                        </div>
+                        <div className="p-4 bg-muted/30 rounded-lg border border-border">
+                          <p className="text-xs text-muted-foreground mb-1">Total Laps</p>
+                          <p className="text-lg font-bold text-accent">{driver.totalLaps}</p>
+                        </div>
+                      </div>
+
+                      {/* Comparative Analysis */}
+                      {idx > 0 && (
+                        <Card className="bg-gradient-to-r from-orange-500/10 to-red-500/10 border-orange-500/20">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-sm flex items-center gap-2">
+                              <i className="fas fa-balance-scale text-orange-400"></i>
+                              Gap to Leader
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Pace Deficit</p>
+                              <p className="text-xl font-bold text-red-400">+{paceAdvantage.toFixed(2)}%</p>
+                              <p className="text-xs text-muted-foreground mt-1">vs. {insightsData.topPerformers[0].driver}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Performance Gap</p>
+                              <p className="text-xl font-bold text-orange-400">{performanceGap.toFixed(1)} pts</p>
+                              <p className="text-xs text-muted-foreground mt-1">Score difference</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* AI Insights - Strengths */}
+                      {strengths.length > 0 && (
+                        <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
+                          <h4 className="font-semibold mb-3 flex items-center gap-2 text-green-400">
+                            <i className="fas fa-trophy"></i>
+                            Key Strengths
+                          </h4>
+                          <ul className="space-y-2">
+                            {strengths.map((strength, i) => (
+                              <li key={i} className="flex items-start gap-2 text-sm">
+                                <i className="fas fa-check-circle text-green-400 mt-0.5"></i>
+                                <span>{strength}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* AI Insights - Weaknesses */}
+                      {weaknesses.length > 0 && (
+                        <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/20">
+                          <h4 className="font-semibold mb-3 flex items-center gap-2 text-red-400">
+                            <i className="fas fa-exclamation-triangle"></i>
+                            Areas for Improvement
+                          </h4>
+                          <ul className="space-y-2">
+                            {weaknesses.map((weakness, i) => (
+                              <li key={i} className="flex items-start gap-2 text-sm">
+                                <i className="fas fa-times-circle text-red-400 mt-0.5"></i>
+                                <span>{weakness}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* AI Recommendations */}
+                      {recommendations.length > 0 && (
+                        <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                          <h4 className="font-semibold mb-3 flex items-center gap-2 text-blue-400">
+                            <i className="fas fa-lightbulb"></i>
+                            AI Recommendations
+                          </h4>
+                          <ul className="space-y-2">
+                            {recommendations.map((rec, i) => (
+                              <li key={i} className="flex items-start gap-2 text-sm">
+                                <i className="fas fa-arrow-right text-blue-400 mt-0.5"></i>
+                                <span>{rec}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Performance Distribution Chart */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-sm">Lap Time Distribution Analysis</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ResponsiveContainer width="100%" height={200}>
+                            <AreaChart data={[
+                              { metric: 'Best Lap', value: driver.bestLap, target: driver.bestLap },
+                              { metric: 'Avg Lap', value: driver.avgLap, target: driver.bestLap },
+                              { metric: 'Consistency', value: driver.avgLap + driver.consistency, target: driver.bestLap },
+                            ]}>
+                              <defs>
+                                <linearGradient id={`gradient-${idx}`} x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor={idx === 0 ? '#fbbf24' : idx === 1 ? '#9ca3af' : '#f97316'} stopOpacity={0.8}/>
+                                  <stop offset="95%" stopColor={idx === 0 ? '#fbbf24' : idx === 1 ? '#9ca3af' : '#f97316'} stopOpacity={0.1}/>
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="metric" />
+                              <YAxis domain={['auto', 'auto']} />
+                              <Tooltip formatter={(value: any) => `${Number(value).toFixed(3)}s`} />
+                              <Area type="monotone" dataKey="value" stroke={idx === 0 ? '#fbbf24' : idx === 1 ? '#9ca3af' : '#f97316'} fill={`url(#gradient-${idx})`} />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </CardContent>
+                      </Card>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Comparative Summary */}
+            <Card className="bg-gradient-to-r from-primary/5 to-secondary/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <i className="fas fa-chart-line text-primary"></i>
+                  Top 3 Comparative Summary
+                </CardTitle>
+                <CardDescription>Side-by-side comparison of key performance indicators</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={insightsData.topPerformers?.slice(0, 3).map((d: any) => ({
+                    driver: d.driver,
+                    'Performance Score': d.performanceScore,
+                    'Consistency (inverted)': Math.max(0, 100 - d.consistency * 100),
+                    'Pace Quality': ((d.bestLap / d.avgLap) * 100),
+                  }))}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="driver" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="Performance Score" fill="#00d9ff" />
+                    <Bar dataKey="Consistency (inverted)" fill="#22c55e" />
+                    <Bar dataKey="Pace Quality" fill="#f59e0b" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
           </div>
         )}
       </CardContent>
