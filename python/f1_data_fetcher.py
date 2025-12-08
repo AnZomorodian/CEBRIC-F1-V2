@@ -718,7 +718,7 @@ def get_race_insights(year, gp, session_type):
             'sessionAvgPace': float(avg_all_times),
             'totalDrivers': len(driver_stats)
         }
-        print(json.dumps(result))
+        return result
 
     except Exception as e:
         raise Exception(f"Failed to generate race insights: {str(e)}")
@@ -1227,7 +1227,8 @@ def main():
             session_type = sys.argv[4]
 
             result = get_race_insights(year, gp, session_type)
-            print(json.dumps(result))
+            if result:
+                print(json.dumps(result))
 
         else:
             raise Exception(f"Unknown command: {command}")

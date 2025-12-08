@@ -74,7 +74,13 @@ export default function Dashboard() {
         <div className="h-8"></div>
 
         {/* Driver Comparison Section */}
-        <DriverComparison sessionData={sessionData} />
+        <DriverComparison 
+          sessionData={sessionData} 
+          telemetryDrivers={telemetryData ? {
+            driver1: telemetryData.driver1.driver,
+            driver2: telemetryData.driver2?.driver
+          } : null}
+        />
 
         {/* Additional Analysis Section */}
         <AdditionalAnalysis sessionData={sessionData} timeFormat={timeFormat} />

@@ -6,11 +6,20 @@ import { F1SessionResponse } from "@shared/schema";
 
 interface DriverComparisonProps {
   sessionData: F1SessionResponse | null;
+  telemetryDrivers?: { driver1: string; driver2?: string } | null;
 }
 
-export default function DriverComparison({ sessionData }: DriverComparisonProps) {
+export default function DriverComparison({ sessionData, telemetryDrivers }: DriverComparisonProps) {
   const [driver1, setDriver1] = useState<string>("");
   const [driver2, setDriver2] = useState<string>("");
+  const [showMiniSectors, setShowMiniSectors] = useState<boolean>(false);
+
+  const syncWithTelemetry = () => {
+    if (telemetryDrivers) {
+      setDriver1(telemetryDrivers.driver1 || "");
+      setDriver2(telemetryDrivers.driver2 || "");
+    }
+  };
 
   if (!sessionData?.drivers || sessionData.drivers.length === 0) {
     return null;
@@ -53,6 +62,40 @@ export default function DriverComparison({ sessionData }: DriverComparisonProps)
     return "text-muted-foreground";
   };
 
+  // Calculate mini sectors (split each sector into sub-sectors)
+  const getMiniSectors = () => {
+    if (!driver1BestLap || !driver2BestLap) return null;
+    
+    const calculateMiniSectors = (sector1: number | null | undefined, sector2: number | null | undefined, sector3: number | null | undefined) => {
+      if (!sector1 || !sector2 || !sector3) return [];
+      
+      // Split each sector into 3 mini sectors (approximate)
+      return [
+        { name: 'S1.1', time: sector1 * 0.33 },
+        { name: 'S1.2', time: sector1 * 0.33 },
+        { name: 'S1.3', time: sector1 * 0.34 },
+        { name: 'S2.1', time: sector2 * 0.33 },
+        { name: 'S2.2', time: sector2 * 0.33 },
+        { name: 'S2.3', time: sector2 * 0.34 },
+        { name: 'S3.1', time: sector3 * 0.33 },
+        { name: 'S3.2', time: sector3 * 0.33 },
+        { name: 'S3.3', time: sector3 * 0.34 },
+      ];
+    };
+
+    const driver1Mini = calculateMiniSectors(driver1BestLap.sector1, driver1BestLap.sector2, driver1BestLap.sector3);
+    const driver2Mini = calculateMiniSectors(driver2BestLap.sector1, driver2BestLap.sector2, driver2BestLap.sector3);
+
+    return driver1Mini.map((mini1, idx) => ({
+      name: mini1.name,
+      driver1Time: mini1.time,
+      driver2Time: driver2Mini[idx]?.time || 0,
+      delta: mini1.time - (driver2Mini[idx]?.time || 0)
+    }));
+  };
+
+  const miniSectors = showMiniSectors ? getMiniSectors() : null;
+
   const hasComparison = driver1 && driver2 && driver1BestLap && driver2BestLap;
 
   return (
@@ -65,6 +108,30 @@ export default function DriverComparison({ sessionData }: DriverComparisonProps)
               DRIVER COMPARISON
             </h2>
             <p className="text-sm text-muted-foreground mt-2">Head-to-head analysis of lap times, sector performance, and race pace</p>
+          </div>
+          <div className="flex gap-2">
+            {telemetryDrivers && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={syncWithTelemetry}
+                title="Sync with telemetry drivers"
+              >
+                <i className="fas fa-sync-alt mr-2"></i>
+                Sync with Telemetry
+              </Button>
+            )}
+            {hasComparison && (
+              <Button
+                variant={showMiniSectors ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowMiniSectors(!showMiniSectors)}
+                title="Toggle mini sectors view"
+              >
+                <i className={`fas ${showMiniSectors ? 'fa-eye-slash' : 'fa-eye'} mr-2`}></i>
+                {showMiniSectors ? 'Hide' : 'Show'} Mini Sectors
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -261,6 +328,38 @@ export default function DriverComparison({ sessionData }: DriverComparisonProps)
                 </div>
               </div>
             </div>
+
+            {/* Mini Sectors Breakdown */}
+            {showMiniSectors && miniSectors && (
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
+                    <i className="fas fa-th text-primary"></i>
+                    Mini Sectors Breakdown
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Each sector divided into 3 mini sectors</p>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-3">
+                  {miniSectors.map((mini, idx) => (
+                    <div key={mini.name} className="p-3 bg-muted/20 rounded-lg border border-border">
+                      <div className="text-center mb-2">
+                        <p className="text-xs font-bold text-muted-foreground">{mini.name}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-primary font-mono">{formatTime(mini.driver1Time)}</span>
+                          <span className={`font-mono font-bold ${getDeltaColor(mini.delta)}`}>
+                            {mini.delta !== 0 ? calculateDelta(mini.driver1Time, mini.driver2Time) : '0.000s'}
+                          </span>
+                          <span className="text-secondary font-mono">{formatTime(mini.driver2Time)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
