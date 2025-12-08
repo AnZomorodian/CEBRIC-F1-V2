@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import FilterPanel from "@/components/filter-panel";
 import LapChart from "@/components/lap-chart";
 import TelemetrySection from "@/components/telemetry-section";
@@ -7,6 +7,7 @@ import AdditionalAnalysis from "@/components/additional-analysis";
 import DriverComparison from "@/components/driver-comparison";
 import AdvancedAnalysis from "@/components/advanced-analysis";
 import RaceInsights from "@/components/race-insights";
+import { Button } from "@/components/ui/button";
 import { F1SessionResponse, F1TelemetryResponse } from "@shared/schema";
 
 export default function Dashboard() {
@@ -18,10 +19,34 @@ export default function Dashboard() {
     session: "",
     drivers: [] as string[]
   });
+  const [showScrollButtons, setShowScrollButtons] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(false);
   const timeFormat = 'seconds';
 
   // Placeholder for year options, to be updated with 2018, 2019, 2025
   const availableYears = ["2023", "2022", "2021", "2020", "2019", "2018", "2025"];
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = document.documentElement.clientHeight;
+      
+      setShowScrollButtons(scrollTop > 300);
+      setIsAtBottom(scrollTop + clientHeight >= scrollHeight - 100);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const scrollToBottom = () => {
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+  };
 
   return (
     <div className="min-h-screen bg-background" data-testid="dashboard-main">
@@ -91,6 +116,30 @@ export default function Dashboard() {
         {/* Race Insights Section */}
         <RaceInsights sessionData={sessionData} filters={selectedFilters} />
       </main>
+
+      {/* Scroll Buttons */}
+      {showScrollButtons && (
+        <div className="fixed right-6 bottom-6 flex flex-col gap-2 z-50">
+          {!isAtBottom && (
+            <Button
+              onClick={scrollToBottom}
+              size="icon"
+              className="h-12 w-12 rounded-full shadow-lg bg-primary hover:bg-primary/90 transition-all duration-300 hover:scale-110"
+              title="Scroll to bottom"
+            >
+              <i className="fas fa-arrow-down text-lg"></i>
+            </Button>
+          )}
+          <Button
+            onClick={scrollToTop}
+            size="icon"
+            className="h-12 w-12 rounded-full shadow-lg bg-secondary hover:bg-secondary/90 transition-all duration-300 hover:scale-110"
+            title="Scroll to top"
+          >
+            <i className="fas fa-arrow-up text-lg"></i>
+          </Button>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="mt-16 border-t border-border bg-card" data-testid="footer-main">

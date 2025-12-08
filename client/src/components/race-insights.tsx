@@ -63,7 +63,7 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
     const consistencyScore = Math.max(0, Math.min(100, 100 - (driver.consistency / baseline.consistency) * 50));
     const bestPaceScore = Math.max(0, Math.min(100, 100 - ((driver.bestLap - baseline.bestLap) / baseline.bestLap) * 500));
     const avgPaceScore = Math.max(0, Math.min(100, 100 - ((driver.avgLap - baseline.avgLap) / baseline.avgLap) * 500));
-    
+
     return {
       driver: driver.driver,
       'Performance Score': performanceScore,
@@ -72,6 +72,15 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
       'Avg Pace': avgPaceScore,
     };
   }) || [];
+
+  // Scroll to top/bottom functionality
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const scrollToBottom = () => {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  };
 
   return (
     <Card className="mt-6" data-testid="race-insights">
@@ -359,7 +368,7 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
                       />
                     </RadarChart>
                   </ResponsiveContainer>
-                  
+
                   <div className="mt-6 grid grid-cols-3 gap-4">
                     {radarData.slice(0, 3).map((driver: any, idx: number) => (
                       <div key={driver.driver} className="p-4 bg-muted/30 rounded-lg border border-border text-center">
@@ -417,19 +426,19 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
                     const consistencyRating = driver.consistency < 0.3 ? 'Excellent' : driver.consistency < 0.6 ? 'Good' : driver.consistency < 1.0 ? 'Average' : 'Poor';
                     const lapTimeDelta = driver.avgLap - driver.bestLap;
                     const positionsGained = driver.gridPosition ? driver.gridPosition - driver.position : 0;
-                    
+
                     // AI Performance Analysis Text
                     let performanceAnalysis = '';
                     let raceStrategyAnalysis = '';
                     let technicalAnalysis = '';
-                    
+
                     // Performance Analysis
                     if (idx === 0) {
                       performanceAnalysis = `The AI analysis identifies ${driver.driver} as the race winner with a dominant performance. With an average lap time of ${driver.avgLap.toFixed(3)}s and a consistency variance of ${driver.consistency.toFixed(3)}s, the driver demonstrated ${consistencyRating.toLowerCase()} race management. The delta between their best lap (${driver.bestLap.toFixed(3)}s) and average lap is ${lapTimeDelta.toFixed(3)}s, indicating ${lapTimeDelta < 0.5 ? 'exceptional ability to maintain qualifying pace throughout the race' : lapTimeDelta < 1.0 ? 'good pace management with minimal tire degradation' : 'noticeable pace drop-off, possibly due to tire management or traffic'}.`;
                     } else {
                       performanceAnalysis = `Finishing in P${driver.position}, ${driver.driver} recorded an average lap time ${paceAdvantage.toFixed(2)}% slower than the race winner. The consistency metric of ${driver.consistency.toFixed(3)}s suggests ${consistencyRating.toLowerCase()} lap time variance. The ${lapTimeDelta.toFixed(3)}s gap between best and average laps ${lapTimeDelta < 0.7 ? 'demonstrates strong tire and fuel management throughout the race distance' : lapTimeDelta < 1.5 ? 'shows moderate pace degradation, typical of standard tire wear patterns' : 'indicates significant pace loss, potentially from tire degradation, fuel load, or strategic tire conservation'}.`;
                     }
-                    
+
                     // Race Strategy Analysis
                     if (positionsGained > 0) {
                       raceStrategyAnalysis = `Starting from P${driver.gridPosition}, ${driver.driver} gained ${positionsGained} position${positionsGained > 1 ? 's' : ''} to finish P${driver.position}. This positive position change suggests effective race strategy execution, strong overtaking capability, or capitalizing on competitor errors. The driver's ${driver.consistency < 0.5 ? 'exceptional consistency' : 'pace management'} throughout ${driver.totalLaps} laps was crucial in maintaining and improving track position.`;
@@ -440,7 +449,7 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
                     } else {
                       raceStrategyAnalysis = `Completing ${driver.totalLaps} laps to finish P${driver.position}, ${driver.driver} maintained ${consistencyRating.toLowerCase()} pace consistency throughout the race distance. The average lap time of ${driver.avgLap.toFixed(3)}s ${idx === 0 ? 'set the benchmark for the field' : `was competitive within the top ${driver.position} finishers`}.`;
                     }
-                    
+
                     // Technical Analysis
                     if (driver.consistency < 0.4) {
                       technicalAnalysis = `Machine learning algorithms detect exceptionally low lap time variance (σ = ${driver.consistency.toFixed(3)}s), indicating optimal car setup, minimal tire degradation, and excellent driver-car harmony. This level of consistency suggests the technical package was well-suited to track conditions and the driver maximized the available performance window consistently. ${lapTimeDelta < 0.6 ? 'The minimal delta between peak and average performance confirms sustained pace capability.' : 'Despite good consistency, the lap time delta suggests room for extracting additional one-lap pace.'}`;
@@ -602,12 +611,44 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
                                     </linearGradient>
                                   </defs>
                                   <CartesianGrid strokeDasharray="3 3" />
-                                  <XAxis dataKey="metric" />
-                                  <YAxis domain={['auto', 'auto']} />
-                                  <Tooltip formatter={(value: any) => `${Number(value).toFixed(3)}s`} />
-                                  <Area type="monotone" dataKey="value" stroke={idx === 0 ? '#fbbf24' : idx === 1 ? '#9ca3af' : '#f97316'} fill={`url(#gradient-${idx})`} />
+                                  <XAxis dataKey="metric" tick={{ fill: '#9ca3af', fontSize: 11 }} stroke="rgba(255,255,255,0.2)"/>
+                                  <YAxis 
+                                    tick={{ fill: '#9ca3af', fontSize: 11 }}
+                                    stroke="rgba(255,255,255,0.2)"
+                                    tickFormatter={(value) => `${value.toFixed(2)}s`}
+                                  />
+                                  <Tooltip 
+                                    contentStyle={{ 
+                                      backgroundColor: 'rgba(18, 18, 20, 0.95)', 
+                                      border: '1px solid rgba(255,255,255,0.2)',
+                                      borderRadius: '8px'
+                                    }}
+                                    labelStyle={{ color: '#fafafa', fontWeight: 'bold' }}
+                                    formatter={(value: any) => [`${value.toFixed(3)}s`, 'Time']}
+                                  />
+                                  <Area 
+                                    type="monotone" 
+                                    dataKey="value" 
+                                    stroke={idx === 0 ? '#fbbf24' : idx === 1 ? '#9ca3af' : '#f97316'} 
+                                    strokeWidth={2}
+                                    fill={`url(#gradient-${idx})`}
+                                  />
                                 </AreaChart>
                               </ResponsiveContainer>
+                              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                                <div className="p-2 bg-yellow-500/10 rounded border border-yellow-500/30">
+                                  <p className="text-[10px] text-yellow-400 font-medium">Best</p>
+                                  <p className="text-xs font-mono font-bold text-yellow-300">{driver.bestLap.toFixed(3)}s</p>
+                                </div>
+                                <div className="p-2 bg-primary/10 rounded border border-primary/30">
+                                  <p className="text-[10px] text-primary font-medium">Average</p>
+                                  <p className="text-xs font-mono font-bold text-primary">{driver.avgLap.toFixed(3)}s</p>
+                                </div>
+                                <div className="p-2 bg-red-500/10 rounded border border-red-500/30">
+                                  <p className="text-[10px] text-red-400 font-medium">Deviation</p>
+                                  <p className="text-xs font-mono font-bold text-red-300">±{driver.consistency.toFixed(3)}s</p>
+                                </div>
+                              </div>
                             </CardContent>
                           </Card>
                         </CardContent>
@@ -660,6 +701,15 @@ export default function RaceInsights({ sessionData, filters }: RaceInsightsProps
           </div>
         )}
       </CardContent>
+      {/* Scroll to Top/Bottom Button */}
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+        <Button size="icon" onClick={scrollToTop} aria-label="Scroll to top">
+          <i className="fas fa-arrow-up"></i>
+        </Button>
+        <Button size="icon" onClick={scrollToBottom} aria-label="Scroll to bottom">
+          <i className="fas fa-arrow-down"></i>
+        </Button>
+      </div>
     </Card>
   );
 }

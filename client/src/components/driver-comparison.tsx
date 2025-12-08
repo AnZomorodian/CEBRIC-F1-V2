@@ -337,26 +337,89 @@ export default function DriverComparison({ sessionData, telemetryDrivers }: Driv
                     <i className="fas fa-th text-primary"></i>
                     Mini Sectors Breakdown
                   </h3>
-                  <p className="text-xs text-muted-foreground">Each sector divided into 3 mini sectors</p>
+                  <p className="text-xs text-muted-foreground">Each sector divided into 3 mini sectors for granular analysis</p>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-3">
-                  {miniSectors.map((mini, idx) => (
-                    <div key={mini.name} className="p-3 bg-muted/20 rounded-lg border border-border">
-                      <div className="text-center mb-2">
-                        <p className="text-xs font-bold text-muted-foreground">{mini.name}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-primary font-mono">{formatTime(mini.driver1Time)}</span>
-                          <span className={`font-mono font-bold ${getDeltaColor(mini.delta)}`}>
-                            {mini.delta !== 0 ? calculateDelta(mini.driver1Time, mini.driver2Time) : '0.000s'}
-                          </span>
-                          <span className="text-secondary font-mono">{formatTime(mini.driver2Time)}</span>
+                <div className="grid grid-cols-3 gap-4">
+                  {miniSectors.map((mini, idx) => {
+                    const isFastest = mini.delta < 0;
+                    const sectorNumber = mini.name.split('.')[0];
+                    return (
+                      <div 
+                        key={mini.name} 
+                        className={`p-4 rounded-lg border-2 transition-all duration-200 hover:scale-105 ${
+                          isFastest 
+                            ? 'bg-gradient-to-br from-green-500/20 to-green-500/5 border-green-500/40' 
+                            : 'bg-gradient-to-br from-red-500/20 to-red-500/5 border-red-500/40'
+                        }`}
+                      >
+                        <div className="text-center mb-3">
+                          <div className="inline-flex items-center gap-2 px-3 py-1 bg-background/50 rounded-full">
+                            <i className="fas fa-location-arrow text-xs text-primary"></i>
+                            <p className="text-xs font-bold text-foreground">{mini.name}</p>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <div className="text-left flex-1">
+                              <p className="text-[10px] text-muted-foreground mb-0.5">{driver1}</p>
+                              <p className="text-sm font-mono font-bold text-primary">{formatTime(mini.driver1Time)}</p>
+                            </div>
+                            <div className="flex-shrink-0 mx-2">
+                              <div className={`px-2 py-1 rounded font-mono text-xs font-bold ${getDeltaColor(mini.delta)} ${
+                                Math.abs(mini.delta) > 0.01 ? 'bg-background/80' : ''
+                              }`}>
+                                {mini.delta !== 0 ? calculateDelta(mini.driver1Time, mini.driver2Time) : '±0.000s'}
+                              </div>
+                            </div>
+                            <div className="text-right flex-1">
+                              <p className="text-[10px] text-muted-foreground mb-0.5">{driver2}</p>
+                              <p className="text-sm font-mono font-bold text-secondary">{formatTime(mini.driver2Time)}</p>
+                            </div>
+                          </div>
+                          {/* Visual bar comparison */}
+                          <div className="relative h-2 bg-muted/30 rounded-full overflow-hidden">
+                            <div 
+                              className={`absolute top-0 left-0 h-full transition-all ${
+                                isFastest ? 'bg-gradient-to-r from-green-500 to-green-400' : 'bg-gradient-to-r from-primary to-primary/60'
+                              }`}
+                              style={{ width: `${Math.min((mini.driver1Time / Math.max(mini.driver1Time, mini.driver2Time)) * 100, 100)}%` }}
+                            ></div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
+                </div>
+                
+                {/* Summary stats for mini sectors */}
+                <div className="mt-6 grid grid-cols-2 gap-4">
+                  <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Sectors Won by {driver1}</p>
+                          <p className="text-2xl font-bold text-primary">
+                            {miniSectors.filter(m => m.delta < 0).length} / {miniSectors.length}
+                          </p>
+                        </div>
+                        <i className="fas fa-trophy text-3xl text-primary/40"></i>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 border-secondary/30">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Sectors Won by {driver2}</p>
+                          <p className="text-2xl font-bold text-secondary">
+                            {miniSectors.filter(m => m.delta > 0).length} / {miniSectors.length}
+                          </p>
+                        </div>
+                        <i className="fas fa-trophy text-3xl text-secondary/40"></i>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
             )}
