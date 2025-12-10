@@ -27,13 +27,22 @@ export default function Footer() {
 
             {/* Creator Section */}
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">Designed & Developed by</p>
+              <p className="text-sm text-muted-foreground mb-2">Designed with 
+                <a 
+                  href="https://github.com/theOehrly/Fast-F1" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:text-primary/80 transition-colors font-semibold mx-1"
+                >
+                  FastF1
+                </a> 
+                by
+              </p>
               <p className="text-lg font-semibold text-foreground mb-1">Artin Zomorodian & Hani Bikdeli</p>
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20">
                 <i className="fas fa-users text-primary text-sm"></i>
                 <span className="text-sm font-medium text-primary">DeepInk Team</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">Powered by FastF1</p>
             </div>
             
             {/* Social Links Section */}

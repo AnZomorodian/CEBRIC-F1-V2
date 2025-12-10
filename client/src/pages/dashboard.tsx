@@ -6,7 +6,7 @@ import StatisticsCards from "@/components/statistics-cards";
 import AdditionalAnalysis from "@/components/additional-analysis";
 import DriverComparison from "@/components/driver-comparison";
 import AdvancedAnalysis from "@/components/advanced-analysis";
-import RaceStartAnalysis from "@/components/race-start-analysis";
+import FormulaAnalysis from "@/components/formula-analysis"; // Assuming this component replaces RaceStartAnalysis
 import RaceInsights from "@/components/race-insights";
 import { F1SessionResponse, F1TelemetryResponse } from "@shared/schema";
 
@@ -89,8 +89,8 @@ export default function Dashboard() {
         {/* Advanced Analysis Section */}
         <AdvancedAnalysis sessionData={sessionData} filters={selectedFilters} excludeMetrics={["weather_impact", "pit_stop"]} />
 
-        {/* Race Start Analysis Section - Only shows for Race sessions */}
-        <RaceStartAnalysis sessionData={sessionData} filters={selectedFilters} />
+        {/* Formula Analysis - Replaces Race Start Analysis */}
+        <FormulaAnalysis sessionData={sessionData} filters={selectedFilters} />
 
         {/* Race Insights Section */}
         <RaceInsights sessionData={sessionData} filters={selectedFilters} />
@@ -141,6 +141,17 @@ export default function Dashboard() {
                 data-testid="link-discord"
               >
                 <i className="fab fa-discord text-xl text-white transition-colors"></i>
+              </a>
+              <a
+                href="https://github.com/Fast-F1/Fast-F1"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center justify-center w-10 h-10 rounded-lg bg-muted/50 hover:bg-gray-800 transition-all duration-300 hover:scale-110"
+                aria-label="FastF1 GitHub"
+                title="FastF1 GitHub"
+                data-testid="link-github-fastf1"
+              >
+                <i className="fab fa-github text-xl text-white transition-colors"></i>
               </a>
             </div>
           </div>
