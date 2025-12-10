@@ -4,9 +4,11 @@ import { F1SessionResponse, F1TelemetryResponse } from "@shared/schema";
 
 export class F1Service {
   private pythonPath: string;
+  private pythonExecutable: string;
 
   constructor() {
     this.pythonPath = path.resolve(import.meta.dirname, "../../python/f1_data_fetcher.py");
+    this.pythonExecutable = path.resolve(import.meta.dirname, "../../.pythonlibs/bin/python3");
   }
 
   async getSessionData(year: number, gp: string, session: string, drivers?: string[]): Promise<F1SessionResponse> {
@@ -16,7 +18,7 @@ export class F1Service {
         args.push(...drivers);
       }
 
-      const pythonProcess = spawn("python3", args);
+      const pythonProcess = spawn(this.pythonExecutable, args);
       let dataString = "";
       let errorString = "";
 
@@ -68,7 +70,7 @@ export class F1Service {
         args.push(driver2, lap2.toString());
       }
 
-      const pythonProcess = spawn("python3", args);
+      const pythonProcess = spawn(this.pythonExecutable, args);
       let dataString = "";
       let errorString = "";
 
@@ -99,7 +101,7 @@ export class F1Service {
   async getAvailableGPs(year: number): Promise<string[]> {
     return new Promise((resolve, reject) => {
       const args = [this.pythonPath, "gps", year.toString()];
-      const pythonProcess = spawn("python3", args);
+      const pythonProcess = spawn(this.pythonExecutable, args);
       let dataString = "";
       let errorString = "";
 
