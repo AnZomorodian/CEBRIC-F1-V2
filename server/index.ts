@@ -66,12 +66,16 @@ process.on('unhandledRejection', (reason, promise) => {
 
     console.error('Express error handler:', err);
     
-    // Don't throw the error - just send response
-    if (!res.headersSent) {
-      res.status(status).json({ 
-        message,
-        error: process.env.NODE_ENV === 'development' ? err.stack : undefined
-      });
+    // Always send a response, never crash
+    try {
+      if (!res.headersSent) {
+        res.status(status).json({ 
+          message,
+          error: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
+      }
+    } catch (responseError) {
+      console.error('Error sending error response:', responseError);
     }
   });
 

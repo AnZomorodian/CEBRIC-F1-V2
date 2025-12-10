@@ -38,6 +38,7 @@ export default defineConfig({
     },
     hmr: {
       timeout: 60000,
+      overlay: false,
     },
     watch: {
       usePolling: false,
