@@ -36,5 +36,12 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    hmr: {
+      timeout: 60000,
+    },
+    watch: {
+      usePolling: false,
+      ignored: ['**/node_modules/**', '**/fastf1_cache/**', '**/.pythonlibs/**'],
+    },
   },
 });
