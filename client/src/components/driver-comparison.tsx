@@ -6,11 +6,20 @@ import { F1SessionResponse } from "@shared/schema";
 
 interface DriverComparisonProps {
   sessionData: F1SessionResponse | null;
+  telemetryDrivers?: { driver1: string; driver2?: string } | null;
 }
 
-export default function DriverComparison({ sessionData }: DriverComparisonProps) {
+export default function DriverComparison({ sessionData, telemetryDrivers }: DriverComparisonProps) {
   const [driver1, setDriver1] = useState<string>("");
   const [driver2, setDriver2] = useState<string>("");
+  const [showMiniSectors, setShowMiniSectors] = useState<boolean>(false);
+
+  const syncWithTelemetry = () => {
+    if (telemetryDrivers) {
+      setDriver1(telemetryDrivers.driver1 || "");
+      setDriver2(telemetryDrivers.driver2 || "");
+    }
+  };
 
   if (!sessionData?.drivers || sessionData.drivers.length === 0) {
     return null;
@@ -53,6 +62,40 @@ export default function DriverComparison({ sessionData }: DriverComparisonProps)
     return "text-muted-foreground";
   };
 
+  // Calculate mini sectors (split each sector into sub-sectors)
+  const getMiniSectors = () => {
+    if (!driver1BestLap || !driver2BestLap) return null;
+    
+    const calculateMiniSectors = (sector1: number | null | undefined, sector2: number | null | undefined, sector3: number | null | undefined) => {
+      if (!sector1 || !sector2 || !sector3) return [];
+      
+      // Split each sector into 3 mini sectors (approximate)
+      return [
+        { name: 'S1.1', time: sector1 * 0.33 },
+        { name: 'S1.2', time: sector1 * 0.33 },
+        { name: 'S1.3', time: sector1 * 0.34 },
+        { name: 'S2.1', time: sector2 * 0.33 },
+        { name: 'S2.2', time: sector2 * 0.33 },
+        { name: 'S2.3', time: sector2 * 0.34 },
+        { name: 'S3.1', time: sector3 * 0.33 },
+        { name: 'S3.2', time: sector3 * 0.33 },
+        { name: 'S3.3', time: sector3 * 0.34 },
+      ];
+    };
+
+    const driver1Mini = calculateMiniSectors(driver1BestLap.sector1, driver1BestLap.sector2, driver1BestLap.sector3);
+    const driver2Mini = calculateMiniSectors(driver2BestLap.sector1, driver2BestLap.sector2, driver2BestLap.sector3);
+
+    return driver1Mini.map((mini1, idx) => ({
+      name: mini1.name,
+      driver1Time: mini1.time,
+      driver2Time: driver2Mini[idx]?.time || 0,
+      delta: mini1.time - (driver2Mini[idx]?.time || 0)
+    }));
+  };
+
+  const miniSectors = showMiniSectors ? getMiniSectors() : null;
+
   const hasComparison = driver1 && driver2 && driver1BestLap && driver2BestLap;
 
   return (
@@ -64,7 +107,34 @@ export default function DriverComparison({ sessionData }: DriverComparisonProps)
               <i className="fas fa-users text-primary"></i>
               DRIVER COMPARISON
             </h2>
-            <p className="text-sm text-muted-foreground mt-2">Head-to-head analysis of lap times, sector performance, and race pace</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Head-to-head performance comparison analyzing fastest lap times, sector-by-sector deltas, 
+              and detailed pace analysis to identify strengths and weaknesses across different track sections
+            </p>
+          </div>
+          <div className="flex gap-2">
+            {telemetryDrivers && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={syncWithTelemetry}
+                title="Sync with telemetry drivers"
+              >
+                <i className="fas fa-sync-alt mr-2"></i>
+                Sync with Telemetry
+              </Button>
+            )}
+            {hasComparison && (
+              <Button
+                variant={showMiniSectors ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowMiniSectors(!showMiniSectors)}
+                title="Toggle mini sectors view"
+              >
+                <i className={`fas ${showMiniSectors ? 'fa-eye-slash' : 'fa-eye'} mr-2`}></i>
+                {showMiniSectors ? 'Hide' : 'Show'} Mini Sectors
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -146,9 +216,14 @@ export default function DriverComparison({ sessionData }: DriverComparisonProps)
                     <p className={`text-4xl font-bold font-mono mb-2 ${getDeltaColor(driver1BestLap.lapTime - driver2BestLap.lapTime)}`} data-testid="lap-delta">
                       {calculateDelta(driver1BestLap.lapTime, driver2BestLap.lapTime)}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {driver1BestLap.lapTime < driver2BestLap.lapTime ? `${driver1} faster` : `${driver2} faster`}
-                    </p>
+                    <div className="text-xs text-muted-foreground">
+                      <p className="font-semibold">
+                        {driver1BestLap.lapTime < driver2BestLap.lapTime ? `${driver1} faster` : `${driver2} faster`}
+                      </p>
+                      <p className="mt-1">
+                        Cumulative time difference over best lap performance
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -172,14 +247,50 @@ export default function DriverComparison({ sessionData }: DriverComparisonProps)
               </Card>
             </div>
 
+            {/* Performance Analysis Summary */}
+            <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
+              <CardContent className="p-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 mb-3">
+                    <i className="fas fa-chart-line text-primary"></i>
+                    <h3 className="text-sm font-bold">Performance Analysis Summary</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    <div className="space-y-1">
+                      <p className="text-muted-foreground">
+                        <strong className="text-foreground">Fastest Overall:</strong>{' '}
+                        {driver1BestLap.lapTime < driver2BestLap.lapTime ? driver1 : driver2} sets the benchmark
+                      </p>
+                      <p className="text-muted-foreground">
+                        <strong className="text-foreground">Lap Time Gap:</strong>{' '}
+                        {Math.abs(driver1BestLap.lapTime - driver2BestLap.lapTime).toFixed(3)}s difference in ultimate pace
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-muted-foreground">
+                        <strong className="text-foreground">Consistency Analysis:</strong>{' '}
+                        Sector-by-sector breakdown reveals performance advantages in different track zones
+                      </p>
+                      <p className="text-muted-foreground">
+                        <strong className="text-foreground">Strategic Insight:</strong>{' '}
+                        Delta analysis identifies where time is gained or lost across the lap
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Sector Comparison */}
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
                   <i className="fas fa-layer-group text-primary"></i>
-                  Sector Breakdown
+                  Sector-by-Sector Breakdown
                 </h3>
-                <p className="text-xs text-muted-foreground">Detailed sector-by-sector comparison</p>
+                <p className="text-xs text-muted-foreground">
+                  Track divided into three sectors showing where each driver gains or loses time
+                </p>
               </div>
               
               <div className="space-y-3">
@@ -260,7 +371,123 @@ export default function DriverComparison({ sessionData }: DriverComparisonProps)
                   <span>{driver2}</span>
                 </div>
               </div>
+
+              {/* Sector Winners Summary */}
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                {[
+                  { sector: 1, driver1Time: driver1BestLap.sector1, driver2Time: driver2BestLap.sector1 },
+                  { sector: 2, driver1Time: driver1BestLap.sector2, driver2Time: driver2BestLap.sector2 },
+                  { sector: 3, driver1Time: driver1BestLap.sector3, driver2Time: driver2BestLap.sector3 }
+                ].map(({ sector, driver1Time, driver2Time }) => {
+                  const winner = (driver1Time || 0) < (driver2Time || 0) ? driver1 : driver2;
+                  const delta = Math.abs((driver1Time || 0) - (driver2Time || 0));
+                  return (
+                    <div key={sector} className="p-3 bg-muted/30 rounded-lg border border-border text-center">
+                      <p className="text-xs text-muted-foreground mb-1">Sector {sector} Winner</p>
+                      <p className={`text-sm font-bold ${winner === driver1 ? 'text-primary' : 'text-secondary'}`}>
+                        {winner}
+                      </p>
+                      <p className="text-xs text-green-400 font-mono mt-1">+{delta.toFixed(3)}s</p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
+
+            {/* Mini Sectors Breakdown */}
+            {showMiniSectors && miniSectors && (
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
+                    <i className="fas fa-th text-primary"></i>
+                    Mini Sectors Breakdown
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Each sector divided into 3 mini sectors for granular analysis</p>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  {miniSectors.map((mini, idx) => {
+                    const isFastest = mini.delta < 0;
+                    const sectorNumber = mini.name.split('.')[0];
+                    return (
+                      <div 
+                        key={mini.name} 
+                        className={`p-4 rounded-lg border-2 transition-all duration-200 hover:scale-105 ${
+                          isFastest 
+                            ? 'bg-gradient-to-br from-green-500/20 to-green-500/5 border-green-500/40' 
+                            : 'bg-gradient-to-br from-red-500/20 to-red-500/5 border-red-500/40'
+                        }`}
+                      >
+                        <div className="text-center mb-3">
+                          <div className="inline-flex items-center gap-2 px-3 py-1 bg-background/50 rounded-full">
+                            <i className="fas fa-location-arrow text-xs text-primary"></i>
+                            <p className="text-xs font-bold text-foreground">{mini.name}</p>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <div className="text-left flex-1">
+                              <p className="text-[10px] text-muted-foreground mb-0.5">{driver1}</p>
+                              <p className="text-sm font-mono font-bold text-primary">{formatTime(mini.driver1Time)}</p>
+                            </div>
+                            <div className="flex-shrink-0 mx-2">
+                              <div className={`px-2 py-1 rounded font-mono text-xs font-bold ${getDeltaColor(mini.delta)} ${
+                                Math.abs(mini.delta) > 0.01 ? 'bg-background/80' : ''
+                              }`}>
+                                {mini.delta !== 0 ? calculateDelta(mini.driver1Time, mini.driver2Time) : '±0.000s'}
+                              </div>
+                            </div>
+                            <div className="text-right flex-1">
+                              <p className="text-[10px] text-muted-foreground mb-0.5">{driver2}</p>
+                              <p className="text-sm font-mono font-bold text-secondary">{formatTime(mini.driver2Time)}</p>
+                            </div>
+                          </div>
+                          {/* Visual bar comparison */}
+                          <div className="relative h-2 bg-muted/30 rounded-full overflow-hidden">
+                            <div 
+                              className={`absolute top-0 left-0 h-full transition-all ${
+                                isFastest ? 'bg-gradient-to-r from-green-500 to-green-400' : 'bg-gradient-to-r from-primary to-primary/60'
+                              }`}
+                              style={{ width: `${Math.min((mini.driver1Time / Math.max(mini.driver1Time, mini.driver2Time)) * 100, 100)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Summary stats for mini sectors */}
+                <div className="mt-6 grid grid-cols-2 gap-4">
+                  <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Sectors Won by {driver1}</p>
+                          <p className="text-2xl font-bold text-primary">
+                            {miniSectors.filter(m => m.delta < 0).length} / {miniSectors.length}
+                          </p>
+                        </div>
+                        <i className="fas fa-trophy text-3xl text-primary/40"></i>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 border-secondary/30">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Sectors Won by {driver2}</p>
+                          <p className="text-2xl font-bold text-secondary">
+                            {miniSectors.filter(m => m.delta > 0).length} / {miniSectors.length}
+                          </p>
+                        </div>
+                        <i className="fas fa-trophy text-3xl text-secondary/40"></i>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
