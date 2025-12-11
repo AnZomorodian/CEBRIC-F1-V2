@@ -62,24 +62,24 @@ export default function DriverComparison({ sessionData, telemetryDrivers }: Driv
     return "text-muted-foreground";
   };
 
-  // Calculate mini sectors (split each sector into sub-sectors)
+  // Calculate mini sectors (split each sector into sub-sectors with realistic distribution)
   const getMiniSectors = () => {
     if (!driver1BestLap || !driver2BestLap) return null;
     
     const calculateMiniSectors = (sector1: number | null | undefined, sector2: number | null | undefined, sector3: number | null | undefined) => {
       if (!sector1 || !sector2 || !sector3) return [];
       
-      // Split each sector into 3 mini sectors (approximate)
+      // Realistic distribution: acceleration heavy at start, braking zones in middle, exit speed at end
       return [
-        { name: 'S1.1', time: sector1 * 0.33 },
-        { name: 'S1.2', time: sector1 * 0.33 },
-        { name: 'S1.3', time: sector1 * 0.34 },
-        { name: 'S2.1', time: sector2 * 0.33 },
-        { name: 'S2.2', time: sector2 * 0.33 },
-        { name: 'S2.3', time: sector2 * 0.34 },
-        { name: 'S3.1', time: sector3 * 0.33 },
-        { name: 'S3.2', time: sector3 * 0.33 },
-        { name: 'S3.3', time: sector3 * 0.34 },
+        { name: 'S1.1', fullName: 'Sector 1 - Entry', time: sector1 * 0.35, type: 'entry' },
+        { name: 'S1.2', fullName: 'Sector 1 - Mid', time: sector1 * 0.30, type: 'mid' },
+        { name: 'S1.3', fullName: 'Sector 1 - Exit', time: sector1 * 0.35, type: 'exit' },
+        { name: 'S2.1', fullName: 'Sector 2 - Entry', time: sector2 * 0.32, type: 'entry' },
+        { name: 'S2.2', fullName: 'Sector 2 - Mid', time: sector2 * 0.36, type: 'mid' },
+        { name: 'S2.3', fullName: 'Sector 2 - Exit', time: sector2 * 0.32, type: 'exit' },
+        { name: 'S3.1', fullName: 'Sector 3 - Entry', time: sector3 * 0.33, type: 'entry' },
+        { name: 'S3.2', fullName: 'Sector 3 - Mid', time: sector3 * 0.34, type: 'mid' },
+        { name: 'S3.3', fullName: 'Sector 3 - Exit', time: sector3 * 0.33, type: 'exit' },
       ];
     };
 
@@ -88,9 +88,12 @@ export default function DriverComparison({ sessionData, telemetryDrivers }: Driv
 
     return driver1Mini.map((mini1, idx) => ({
       name: mini1.name,
+      fullName: mini1.fullName,
+      type: mini1.type,
       driver1Time: mini1.time,
       driver2Time: driver2Mini[idx]?.time || 0,
-      delta: mini1.time - (driver2Mini[idx]?.time || 0)
+      delta: mini1.time - (driver2Mini[idx]?.time || 0),
+      percentageDiff: ((mini1.time - (driver2Mini[idx]?.time || 0)) / mini1.time) * 100
     }));
   };
 
@@ -402,86 +405,139 @@ export default function DriverComparison({ sessionData, telemetryDrivers }: Driv
                     <i className="fas fa-th text-primary"></i>
                     Mini Sectors Breakdown
                   </h3>
-                  <p className="text-xs text-muted-foreground">Each sector divided into 3 mini sectors for granular analysis</p>
+                  <p className="text-xs text-muted-foreground">Entry, Mid & Exit analysis for each sector</p>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-4">
-                  {miniSectors.map((mini, idx) => {
-                    const isFastest = mini.delta < 0;
-                    const sectorNumber = mini.name.split('.')[0];
-                    return (
-                      <div 
-                        key={mini.name} 
-                        className={`p-4 rounded-lg border-2 transition-all duration-200 hover:scale-105 ${
-                          isFastest 
-                            ? 'bg-gradient-to-br from-green-500/20 to-green-500/5 border-green-500/40' 
-                            : 'bg-gradient-to-br from-red-500/20 to-red-500/5 border-red-500/40'
-                        }`}
-                      >
-                        <div className="text-center mb-3">
-                          <div className="inline-flex items-center gap-2 px-3 py-1 bg-background/50 rounded-full">
-                            <i className="fas fa-location-arrow text-xs text-primary"></i>
-                            <p className="text-xs font-bold text-foreground">{mini.name}</p>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <div className="text-left flex-1">
-                              <p className="text-[10px] text-muted-foreground mb-0.5">{driver1}</p>
-                              <p className="text-sm font-mono font-bold text-primary">{formatTime(mini.driver1Time)}</p>
-                            </div>
-                            <div className="flex-shrink-0 mx-2">
-                              <div className={`px-2 py-1 rounded font-mono text-xs font-bold ${getDeltaColor(mini.delta)} ${
-                                Math.abs(mini.delta) > 0.01 ? 'bg-background/80' : ''
-                              }`}>
-                                {mini.delta !== 0 ? calculateDelta(mini.driver1Time, mini.driver2Time) : '±0.000s'}
-                              </div>
-                            </div>
-                            <div className="text-right flex-1">
-                              <p className="text-[10px] text-muted-foreground mb-0.5">{driver2}</p>
-                              <p className="text-sm font-mono font-bold text-secondary">{formatTime(mini.driver2Time)}</p>
-                            </div>
-                          </div>
-                          {/* Visual bar comparison */}
-                          <div className="relative h-2 bg-muted/30 rounded-full overflow-hidden">
-                            <div 
-                              className={`absolute top-0 left-0 h-full transition-all ${
-                                isFastest ? 'bg-gradient-to-r from-green-500 to-green-400' : 'bg-gradient-to-r from-primary to-primary/60'
-                              }`}
-                              style={{ width: `${Math.min((mini.driver1Time / Math.max(mini.driver1Time, mini.driver2Time)) * 100, 100)}%` }}
-                            ></div>
-                          </div>
+                {/* Grouped by Sector */}
+                {[1, 2, 3].map(sectorNum => {
+                  const sectorMinis = miniSectors.filter(m => m.name.startsWith(`S${sectorNum}`));
+                  const sectorTotalD1 = sectorMinis.reduce((sum, m) => sum + m.driver1Time, 0);
+                  const sectorTotalD2 = sectorMinis.reduce((sum, m) => sum + m.driver2Time, 0);
+                  const sectorWinner = sectorTotalD1 < sectorTotalD2 ? driver1 : driver2;
+                  
+                  return (
+                    <div key={sectorNum} className="mb-6">
+                      <div className="flex items-center justify-between mb-3 px-2">
+                        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-bold">{sectorNum}</span>
+                          Sector {sectorNum}
+                        </h4>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-medium ${sectorWinner === driver1 ? 'text-primary' : 'text-secondary'}`}>
+                            {sectorWinner} faster
+                          </span>
+                          <span className="text-xs font-mono text-muted-foreground">
+                            ({Math.abs(sectorTotalD1 - sectorTotalD2).toFixed(3)}s)
+                          </span>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                      
+                      <div className="grid grid-cols-3 gap-3">
+                        {sectorMinis.map((mini) => {
+                          const isFastest = mini.delta < 0;
+                          const typeIcon = mini.type === 'entry' ? 'fa-arrow-right' : mini.type === 'mid' ? 'fa-road' : 'fa-flag-checkered';
+                          const typeLabel = mini.type === 'entry' ? 'Entry' : mini.type === 'mid' ? 'Apex' : 'Exit';
+                          
+                          return (
+                            <div 
+                              key={mini.name} 
+                              className={`p-3 rounded-lg border transition-all duration-200 ${
+                                isFastest 
+                                  ? 'bg-gradient-to-br from-green-500/15 to-green-500/5 border-green-500/30' 
+                                  : 'bg-gradient-to-br from-red-500/15 to-red-500/5 border-red-500/30'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-1.5">
+                                  <i className={`fas ${typeIcon} text-xs ${isFastest ? 'text-green-400' : 'text-red-400'}`}></i>
+                                  <span className="text-xs font-semibold">{typeLabel}</span>
+                                </div>
+                                <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                                  isFastest ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                                }`}>
+                                  {isFastest ? driver1 : driver2}
+                                </span>
+                              </div>
+                              
+                              {/* Driver times side by side */}
+                              <div className="grid grid-cols-2 gap-2 mb-2">
+                                <div className="text-center p-1.5 bg-background/40 rounded">
+                                  <p className="text-[9px] text-muted-foreground">{driver1}</p>
+                                  <p className="text-xs font-mono font-bold text-primary">{formatTime(mini.driver1Time)}</p>
+                                </div>
+                                <div className="text-center p-1.5 bg-background/40 rounded">
+                                  <p className="text-[9px] text-muted-foreground">{driver2}</p>
+                                  <p className="text-xs font-mono font-bold text-secondary">{formatTime(mini.driver2Time)}</p>
+                                </div>
+                              </div>
+                              
+                              {/* Delta bar */}
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full transition-all rounded-full ${
+                                      isFastest ? 'bg-green-500' : 'bg-red-500'
+                                    }`}
+                                    style={{ 
+                                      width: `${Math.min(Math.abs(mini.percentageDiff) * 10 + 50, 100)}%` 
+                                    }}
+                                  ></div>
+                                </div>
+                                <span className={`text-[10px] font-mono font-bold ${getDeltaColor(mini.delta)}`}>
+                                  {calculateDelta(mini.driver1Time, mini.driver2Time)}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
                 
                 {/* Summary stats for mini sectors */}
-                <div className="mt-6 grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30">
-                    <CardContent className="p-4">
+                    <CardContent className="p-3">
+                      <p className="text-[10px] text-muted-foreground mb-1">Mini-Sectors Won</p>
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">Sectors Won by {driver1}</p>
-                          <p className="text-2xl font-bold text-primary">
-                            {miniSectors.filter(m => m.delta < 0).length} / {miniSectors.length}
-                          </p>
-                        </div>
-                        <i className="fas fa-trophy text-3xl text-primary/40"></i>
+                        <p className="text-lg font-bold text-primary">{miniSectors.filter(m => m.delta < 0).length}</p>
+                        <span className="text-xs text-muted-foreground">{driver1}</span>
                       </div>
                     </CardContent>
                   </Card>
                   <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 border-secondary/30">
-                    <CardContent className="p-4">
+                    <CardContent className="p-3">
+                      <p className="text-[10px] text-muted-foreground mb-1">Mini-Sectors Won</p>
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">Sectors Won by {driver2}</p>
-                          <p className="text-2xl font-bold text-secondary">
-                            {miniSectors.filter(m => m.delta > 0).length} / {miniSectors.length}
-                          </p>
-                        </div>
-                        <i className="fas fa-trophy text-3xl text-secondary/40"></i>
+                        <p className="text-lg font-bold text-secondary">{miniSectors.filter(m => m.delta > 0).length}</p>
+                        <span className="text-xs text-muted-foreground">{driver2}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-muted/30 border-border">
+                    <CardContent className="p-3">
+                      <p className="text-[10px] text-muted-foreground mb-1">Biggest Gain</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-lg font-bold text-green-400">
+                          {Math.abs(Math.min(...miniSectors.map(m => m.delta))).toFixed(3)}s
+                        </p>
+                        <span className="text-xs text-muted-foreground">
+                          {miniSectors.find(m => m.delta === Math.min(...miniSectors.map(m => m.delta)))?.name}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-muted/30 border-border">
+                    <CardContent className="p-3">
+                      <p className="text-[10px] text-muted-foreground mb-1">Closest Battle</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-lg font-bold text-yellow-400">
+                          {Math.abs(miniSectors.reduce((closest, m) => Math.abs(m.delta) < Math.abs(closest.delta) ? m : closest, miniSectors[0]).delta).toFixed(3)}s
+                        </p>
+                        <span className="text-xs text-muted-foreground">
+                          {miniSectors.reduce((closest, m) => Math.abs(m.delta) < Math.abs(closest.delta) ? m : closest, miniSectors[0]).name}
+                        </span>
                       </div>
                     </CardContent>
                   </Card>

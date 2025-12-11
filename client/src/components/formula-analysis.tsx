@@ -1,7 +1,9 @@
-
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { F1SessionResponse } from "@shared/schema";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, ScatterChart, Scatter, ZAxis } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, ZAxis, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { Eye, EyeOff, TrendingUp, Target, Zap, Clock, Award, BarChart3 } from "lucide-react";
 
 interface FormulaAnalysisProps {
   sessionData: F1SessionResponse | null;
@@ -9,6 +11,8 @@ interface FormulaAnalysisProps {
 }
 
 export default function FormulaAnalysis({ sessionData, filters }: FormulaAnalysisProps) {
+  const [showDetails, setShowDetails] = useState(false);
+
   if (!sessionData || !sessionData.laps || sessionData.laps.length === 0) {
     return null;
   }
@@ -87,18 +91,113 @@ export default function FormulaAnalysis({ sessionData, filters }: FormulaAnalysi
 
   const performanceColors = ['#00d9ff', '#ff3853', '#fbbf24', '#22c55e', '#a855f7', '#f97316', '#ec4899', '#14b8a6'];
 
+  // Calculate additional advanced metrics
+  const advancedMetrics = {
+    // Speed trap analysis (simulated from lap times)
+    avgLapTimeAll: driverMetrics.reduce((sum, d) => sum + d!.avgLap, 0) / driverMetrics.length,
+    fastestDriver: driverMetrics[0]!.driver,
+    mostConsistent: [...driverMetrics].sort((a, b) => a!.consistency - b!.consistency)[0]!.driver,
+    biggestImprover: [...driverMetrics].sort((a, b) => a!.paceEvolution - b!.paceEvolution)[0]!.driver,
+    
+    // Sector dominance for top 5 drivers
+    sectorDominance: driverMetrics.slice(0, 5).map(d => {
+      const driverLaps = sessionData.laps.filter(l => l.driver === d!.driver && l.sector1 > 0);
+      const avgS1 = driverLaps.reduce((sum, l) => sum + l.sector1, 0) / (driverLaps.length || 1);
+      const avgS2 = driverLaps.reduce((sum, l) => sum + l.sector2, 0) / (driverLaps.length || 1);
+      const avgS3 = driverLaps.reduce((sum, l) => sum + l.sector3, 0) / (driverLaps.length || 1);
+      const totalAvg = avgS1 + avgS2 + avgS3;
+      return {
+        driver: d!.driver,
+        sector1: totalAvg > 0 ? ((1 - avgS1 / (totalAvg / 3)) * 100 + 100) : 50,
+        sector2: totalAvg > 0 ? ((1 - avgS2 / (totalAvg / 3)) * 100 + 100) : 50,
+        sector3: totalAvg > 0 ? ((1 - avgS3 / (totalAvg / 3)) * 100 + 100) : 50,
+        consistency: 100 - (d!.consistency * 50),
+        racePace: 100 - ((d!.avgLap - driverMetrics[0]!.avgLap) * 10),
+      };
+    }),
+    
+    // Lap time progression data
+    lapProgression: driverMetrics.slice(0, 3).map(d => ({
+      driver: d!.driver,
+      laps: sessionData.laps
+        .filter(l => l.driver === d!.driver && l.lapTime > 0)
+        .slice(0, 15)
+        .map((l, idx) => ({ lap: idx + 1, time: l.lapTime }))
+    })),
+  };
+
   return (
     <Card className="mt-6 bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <i className="fas fa-formula text-primary"></i>
-          Formula Analysis - Advanced Performance Metrics
-        </CardTitle>
-        <CardDescription>
-          Comprehensive analysis of driver performance, consistency, and tire strategy
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-primary" />
+              Formula Analysis - Advanced Performance Metrics
+            </CardTitle>
+            <CardDescription>
+              Comprehensive analysis of driver performance, consistency, and tire strategy
+            </CardDescription>
+          </div>
+          <Button
+            variant={showDetails ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowDetails(!showDetails)}
+            className="gap-2"
+            data-testid="button-toggle-analysis"
+          >
+            {showDetails ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            {showDetails ? 'Hide Details' : 'Show Details'}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Quick Stats - Always Visible */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card className="bg-gradient-to-br from-yellow-500/10 to-orange-500/5 border-yellow-500/30">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Award className="w-4 h-4 text-yellow-500" />
+                <p className="text-[10px] text-muted-foreground">Session Leader</p>
+              </div>
+              <p className="text-lg font-bold text-yellow-500">{advancedMetrics.fastestDriver}</p>
+              <p className="text-xs text-muted-foreground">{driverMetrics[0]!.bestLap.toFixed(3)}s</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 border-green-500/30">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Target className="w-4 h-4 text-green-500" />
+                <p className="text-[10px] text-muted-foreground">Most Consistent</p>
+              </div>
+              <p className="text-lg font-bold text-green-500">{advancedMetrics.mostConsistent}</p>
+              <p className="text-xs text-muted-foreground">Low variance</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-blue-500/10 to-cyan-500/5 border-blue-500/30">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="w-4 h-4 text-blue-500" />
+                <p className="text-[10px] text-muted-foreground">Most Improved</p>
+              </div>
+              <p className="text-lg font-bold text-blue-500">{advancedMetrics.biggestImprover}</p>
+              <p className="text-xs text-muted-foreground">Session progression</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/5 border-purple-500/30">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className="w-4 h-4 text-purple-500" />
+                <p className="text-[10px] text-muted-foreground">Avg Lap Time</p>
+              </div>
+              <p className="text-lg font-bold text-purple-500">{advancedMetrics.avgLapTimeAll.toFixed(2)}s</p>
+              <p className="text-xs text-muted-foreground">Field average</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {showDetails && (
+          <>
         {/* Top 3 Performance Leaders */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {driverMetrics.slice(0, 3).map((driver, idx) => (
@@ -374,6 +473,86 @@ export default function FormulaAnalysis({ sessionData, filters }: FormulaAnalysi
             </ul>
           </CardContent>
         </Card>
+
+        {/* NEW: Driver Performance Radar Chart */}
+        {advancedMetrics.sectorDominance.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Zap className="w-4 h-4 text-primary" />
+                Driver Performance Radar (Top 5)
+              </CardTitle>
+              <CardDescription>Multi-dimensional performance comparison</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={350}>
+                <RadarChart data={[
+                  { subject: 'Sector 1', ...Object.fromEntries(advancedMetrics.sectorDominance.map(d => [d.driver, d.sector1])) },
+                  { subject: 'Sector 2', ...Object.fromEntries(advancedMetrics.sectorDominance.map(d => [d.driver, d.sector2])) },
+                  { subject: 'Sector 3', ...Object.fromEntries(advancedMetrics.sectorDominance.map(d => [d.driver, d.sector3])) },
+                  { subject: 'Consistency', ...Object.fromEntries(advancedMetrics.sectorDominance.map(d => [d.driver, d.consistency])) },
+                  { subject: 'Race Pace', ...Object.fromEntries(advancedMetrics.sectorDominance.map(d => [d.driver, d.racePace])) },
+                ]}>
+                  <PolarGrid stroke="rgba(255,255,255,0.1)" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#A0A0A0', fontSize: 11 }} />
+                  <PolarRadiusAxis angle={30} domain={[0, 150]} tick={{ fill: '#A0A0A0', fontSize: 9 }} />
+                  {advancedMetrics.sectorDominance.map((d, idx) => (
+                    <Radar
+                      key={d.driver}
+                      name={d.driver}
+                      dataKey={d.driver}
+                      stroke={performanceColors[idx % performanceColors.length]}
+                      fill={performanceColors[idx % performanceColors.length]}
+                      fillOpacity={0.15}
+                    />
+                  ))}
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(18, 18, 20, 0.95)', 
+                      border: '1px solid rgba(0, 217, 255, 0.3)',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Legend />
+                </RadarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* NEW: Head-to-Head Quick Stats */}
+        <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-primary" />
+              Session Statistics Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div className="p-3 bg-muted/30 rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">Total Drivers</p>
+                <p className="text-2xl font-bold text-primary">{driverMetrics.length}</p>
+              </div>
+              <div className="p-3 bg-muted/30 rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">Total Laps</p>
+                <p className="text-2xl font-bold text-secondary">{sessionData.laps.filter(l => l.lapTime > 0).length}</p>
+              </div>
+              <div className="p-3 bg-muted/30 rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">Fastest Lap</p>
+                <p className="text-2xl font-bold text-green-400">{bestOverallLap.toFixed(2)}s</p>
+              </div>
+              <div className="p-3 bg-muted/30 rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">Gap P1-P10</p>
+                <p className="text-2xl font-bold text-yellow-400">
+                  {((driverMetrics[Math.min(9, driverMetrics.length - 1)]!.bestLap - bestOverallLap)).toFixed(2)}s
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+          </>
+        )}
       </CardContent>
     </Card>
   );

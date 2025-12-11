@@ -507,22 +507,26 @@ export default function TelemetrySection({
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">DRS Usage</CardTitle>
+                  <CardTitle className="text-sm font-medium">DRS Enabled</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <div>
+                    <div className="flex items-center gap-2">
                       <span className="font-semibold" style={{ color: driver1Color }}>
                         {telemetryData.driver1.driver}:
                       </span>{" "}
-                      {telemetryData.driver1.metrics.drsUsage.toFixed(1)}%
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${telemetryData.driver1.metrics.drsUsage > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {telemetryData.driver1.metrics.drsUsage > 0 ? 'Yes' : 'No'}
+                      </span>
                     </div>
                     {telemetryData.driver2 && (
-                      <div>
+                      <div className="flex items-center gap-2">
                         <span className="font-semibold" style={{ color: driver2Color }}>
                           {telemetryData.driver2.driver}:
                         </span>{" "}
-                        {telemetryData.driver2.metrics.drsUsage.toFixed(1)}%
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${telemetryData.driver2.metrics.drsUsage > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                          {telemetryData.driver2.metrics.drsUsage > 0 ? 'Yes' : 'No'}
+                        </span>
                       </div>
                     )}
                   </div>
