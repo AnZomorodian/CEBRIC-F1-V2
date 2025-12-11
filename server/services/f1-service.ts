@@ -8,7 +8,7 @@ class F1Service {
 
   constructor() {
     this.pythonPath = path.resolve(import.meta.dirname, "../../python/f1_data_fetcher.py");
-    this.pythonExecutable = "python3";
+    this.pythonExecutable = path.resolve(import.meta.dirname, "../../.pythonlibs/bin/python3");
   }
 
   async getSessionData(year: number, gp: string, session: string, drivers?: string[]): Promise<F1SessionResponse> {
