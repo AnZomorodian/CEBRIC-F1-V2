@@ -36,10 +36,5 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
-    hmr: false,
-    watch: {
-      usePolling: false,
-      ignored: ['**/node_modules/**', '**/fastf1_cache/**', '**/.pythonlibs/**'],
-    },
   },
 });
